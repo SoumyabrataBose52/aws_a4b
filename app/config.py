@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "mock"  # "gemini" or "mock"
     GEMINI_API_KEY: str = ""
 
+    # Platform APIs
+    YOUTUBE_API_KEY: str = ""
+
     # Security
     API_KEY_SECRET: str = "nexus-dev-secret"
     DEFAULT_API_KEY: str = "nexus-dev-key-12345"
