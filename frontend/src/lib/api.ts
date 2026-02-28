@@ -1,0 +1,104 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'nexus-dev-key-12345';
+
+async function apiFetch(path: string, options: RequestInit = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': API_KEY,
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(error.detail || `API Error ${res.status}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ---- Creators ----
+export const creators = {
+  list: (status?: string) => apiFetch(`/api/v1/creators${status ? `?status=${status}` : ''}`),
+  get: (id: string) => apiFetch(`/api/v1/creators/${id}`),
+  create: (data: any) => apiFetch('/api/v1/creators', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: any) => apiFetch(`/api/v1/creators/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) => apiFetch(`/api/v1/creators/${id}`, { method: 'DELETE' }),
+  onboard: (id: string, youtubeChannel?: string) =>
+    apiFetch(`/api/v1/creators/${id}/onboard${youtubeChannel ? `?youtube_channel=${youtubeChannel}` : ''}`, { method: 'POST' }),
+  getDna: (id: string) => apiFetch(`/api/v1/creators/${id}/dna`),
+};
+
+// ---- Content ----
+export const content = {
+  list: (creatorId?: string) => apiFetch(`/api/v1/content${creatorId ? `?creator_id=${creatorId}` : ''}`),
+  get: (id: string) => apiFetch(`/api/v1/content/${id}`),
+  generate: (data: any) => apiFetch('/api/v1/content/generate', { method: 'POST', body: JSON.stringify(data) }),
+  create: (data: any) => apiFetch('/api/v1/content', { method: 'POST', body: JSON.stringify(data) }),
+  publish: (id: string) => apiFetch(`/api/v1/content/${id}/publish`, { method: 'POST' }),
+};
+
+// ---- Trends ----
+export const trends = {
+  list: () => apiFetch('/api/v1/trends'),
+  create: (data: any) => apiFetch('/api/v1/trends', { method: 'POST', body: JSON.stringify(data) }),
+  match: (trendId: string) => apiFetch(`/api/v1/trends/${trendId}/match`, { method: 'POST' }),
+};
+
+// ---- Crisis ----
+export const crisis = {
+  list: (creatorId?: string) => apiFetch(`/api/v1/crisis${creatorId ? `?creator_id=${creatorId}` : ''}`),
+  get: (id: string) => apiFetch(`/api/v1/crisis/${id}`),
+  create: (data: any) => apiFetch('/api/v1/crisis', { method: 'POST', body: JSON.stringify(data) }),
+  generateStrategies: (crisisId: string) =>
+    apiFetch(`/api/v1/crisis/${crisisId}/strategies`, { method: 'POST', body: JSON.stringify({ count: 3 }) }),
+  simulate: (crisisId: string, strategyId: string) =>
+    apiFetch(`/api/v1/crisis/${crisisId}/simulate`, { method: 'POST', body: JSON.stringify({ strategy_id: strategyId }) }),
+  execute: (crisisId: string, strategyId: string) =>
+    apiFetch(`/api/v1/crisis/${crisisId}/execute`, { method: 'POST', body: JSON.stringify({ strategy_id: strategyId }) }),
+};
+
+// ---- Sentiment ----
+export const sentiment = {
+  get: (creatorId: string) => apiFetch(`/api/v1/sentiment/${creatorId}`),
+  record: (data: any) => apiFetch('/api/v1/sentiment', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ---- Deals ----
+export const deals = {
+  list: (creatorId?: string) => apiFetch(`/api/v1/deals${creatorId ? `?creator_id=${creatorId}` : ''}`),
+  create: (data: any) => apiFetch('/api/v1/deals', { method: 'POST', body: JSON.stringify(data) }),
+  research: (dealId: string) => apiFetch(`/api/v1/deals/${dealId}/research`, { method: 'POST' }),
+  outreach: (dealId: string) => apiFetch(`/api/v1/deals/${dealId}/outreach`, { method: 'POST' }),
+  counter: (dealId: string) => apiFetch(`/api/v1/deals/${dealId}/counter`, { method: 'POST' }),
+};
+
+// ---- Media Kit ----
+export const mediaKit = {
+  get: (creatorId: string) => apiFetch(`/api/v1/creators/${creatorId}/media-kit`),
+  generate: (creatorId: string) => apiFetch(`/api/v1/creators/${creatorId}/media-kit`, { method: 'POST' }),
+};
+
+// ---- Analytics ----
+export const analytics = {
+  dashboard: (creatorId: string) => apiFetch(`/api/v1/analytics/dashboard/${creatorId}`),
+  predict: (data: any) => apiFetch('/api/v1/analytics/predict', { method: 'POST', body: JSON.stringify(data) }),
+  postingTimes: (creatorId: string) => apiFetch(`/api/v1/analytics/posting-times/${creatorId}`),
+  forecast: (creatorId: string) => apiFetch(`/api/v1/analytics/forecast/${creatorId}`),
+};
+
+// ---- YouTube ----
+export const youtube = {
+  trending: (region = 'IN', maxResults = 10) => apiFetch(`/api/v1/youtube/trending?region=${region}&max_results=${maxResults}`),
+  channel: (id: string) => apiFetch(`/api/v1/youtube/channel/${id}`),
+  channelVideos: (channelId: string) => apiFetch(`/api/v1/youtube/channel/${channelId}/videos`),
+  search: (q: string) => apiFetch(`/api/v1/youtube/search?q=${encodeURIComponent(q)}`),
+};
+
+// ---- System ----
+export const system = {
+  health: () => apiFetch('/api/v1/system/health'),
+  events: () => apiFetch('/api/v1/system/events'),
+  logs: (agentName?: string) => apiFetch(`/api/v1/system/logs${agentName ? `?agent_name=${agentName}` : ''}`),
+};
