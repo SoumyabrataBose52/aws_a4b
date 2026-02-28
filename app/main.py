@@ -60,7 +60,7 @@ app.add_middleware(
 )
 
 # Register routers
-from app.routers import creators, content, trends, crisis, deals, analytics, system  # noqa: E402
+from app.routers import creators, content, trends, crisis, deals, analytics, system, youtube  # noqa: E402
 
 app.include_router(creators.router)
 app.include_router(content.router)
@@ -69,6 +69,7 @@ app.include_router(crisis.router)
 app.include_router(deals.router)
 app.include_router(analytics.router)
 app.include_router(system.router)
+app.include_router(youtube.router)
 
 
 @app.get("/", tags=["Root"])
