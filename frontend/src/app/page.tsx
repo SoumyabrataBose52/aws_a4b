@@ -1,166 +1,218 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { creators, analytics, system, youtube } from '@/lib/api';
+"use client";
 
-export default function Dashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [creatorList, setCreatorList] = useState<any[]>([]);
-  const [trending, setTrending] = useState<any[]>([]);
-  const [health, setHealth] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+import "./landing.css";
+import UnicornHero from "@/components/UnicornHero";
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [h, cl] = await Promise.all([
-          system.health(),
-          creators.list(),
-        ]);
-        setHealth(h);
-        setCreatorList(cl);
+const features = [
+    {
+        icon: "🤖",
+        title: "Multi-Agent AI Engine",
+        desc: "Autonomous AI agents handle content planning, crisis detection, and deal negotiation — all working in parallel.",
+    },
+    {
+        icon: "📊",
+        title: "Real-Time Analytics",
+        desc: "Track performance across YouTube, Instagram, and Twitter with unified dashboards and actionable insights.",
+    },
+    {
+        icon: "🛡️",
+        title: "Crisis Shield",
+        desc: "Detect PR risks before they escalate. AI-powered sentiment analysis monitors every mention 24/7.",
+    },
+    {
+        icon: "✏️",
+        title: "Content Intelligence",
+        desc: "Generate scripts, thumbnails, and posting schedules optimized by machine learning for maximum engagement.",
+    },
+    {
+        icon: "🤝",
+        title: "Deal Flow Automation",
+        desc: "AI evaluates brand partnership offers, negotiates rates, and manages contract workflows automatically.",
+    },
+    {
+        icon: "📈",
+        title: "Trend Forecasting",
+        desc: "Stay ahead of viral moments. Predictive AI surfaces emerging trends aligned with your creator's niche.",
+    },
+];
 
-        // Load dashboard for first creator
-        if (cl.length > 0) {
-          const dash = await analytics.dashboard(cl[0].id);
-          setStats(dash);
-        }
+const steps = [
+    {
+        num: "1",
+        title: "Connect Creators",
+        desc: "Link creator accounts across all major platforms in minutes.",
+    },
+    {
+        num: "2",
+        title: "Deploy AI Agents",
+        desc: "Activate specialized agents for analytics, content, crisis, and deals.",
+    },
+    {
+        num: "3",
+        title: "Scale & Optimize",
+        desc: "Watch your operations scale while AI continuously optimizes performance.",
+    },
+];
 
-        // Load trending
-        try {
-          const t = await youtube.trending('IN', 5);
-          setTrending(t.videos || []);
-        } catch { }
-      } catch (e: any) {
-        console.error('Dashboard load error:', e);
-      }
-      setLoading(false);
-    }
-    load();
-  }, []);
+const stats = [
+    { number: "10x", desc: "Faster Workflow" },
+    { number: "24/7", desc: "AI Monitoring" },
+    { number: "500+", desc: "Creators Managed" },
+    { number: "98%", desc: "Client Retention" },
+];
 
-  if (loading) {
+export default function LandingPage() {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div className="spinner" style={{ width: 40, height: 40 }} />
-      </div>
-    );
-  }
+        <div>
+            {/* Navbar */}
+            <nav className="landing-nav">
+                <div className="landing-nav-logo">NEXUS SOLO</div>
+                <ul className="landing-nav-links">
+                    <li>
+                        <a href="#features">Features</a>
+                    </li>
+                    <li>
+                        <a href="#how-it-works">How It Works</a>
+                    </li>
+                    <li>
+                        <a href="#stats">Stats</a>
+                    </li>
+                    <li>
+                        <a href="/dashboard" className="nav-cta">
+                            Launch App →
+                        </a>
+                    </li>
+                </ul>
+            </nav>
 
-  return (
-    <div className="animate-in">
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '4px' }}>Command Center</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-          {health ? `Backend: ${health.status} • ${new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}` : 'Connecting...'}
-        </p>
-      </div>
-
-      {/* Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
-        <div className="stat-card">
-          <div className="stat-label">Total Creators</div>
-          <div className="stat-value">{creatorList.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Content Pieces</div>
-          <div className="stat-value">{stats?.total_content || 0}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Active Crises</div>
-          <div className="stat-value" style={stats?.active_crises > 0 ? { background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : undefined}>
-            {stats?.active_crises || 0}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Sentiment Score</div>
-          <div className="stat-value">{stats?.current_sentiment?.toFixed(1) || '—'}</div>
-        </div>
-      </div>
-
-      {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-        {/* Creators */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600 }}>Creators</h2>
-            <a href="/creators" style={{ fontSize: '13px', color: 'var(--accent)', textDecoration: 'none' }}>View all →</a>
-          </div>
-          {creatorList.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>👤</div>
-              <p>No creators yet</p>
-              <a href="/creators" className="btn-glow" style={{ display: 'inline-block', marginTop: '12px', textDecoration: 'none' }}>
-                Add Creator
-              </a>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {creatorList.slice(0, 5).map((c: any) => (
-                <a key={c.id} href={`/creators/${c.id}`} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '10px', borderRadius: '10px', textDecoration: 'none', color: 'inherit',
-                  background: 'var(--bg-secondary)', transition: 'all 0.2s',
-                }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--gradient-start), var(--gradient-end))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '14px', fontWeight: 700, color: '#fff',
-                  }}>
-                    {c.name?.charAt(0)?.toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '14px' }}>{c.name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {c.platforms?.join(', ') || 'No platforms'}
+            {/* Hero */}
+            <section className="landing-hero">
+                <UnicornHero />
+                <div className="hero-content">
+                    <div className="hero-badge">⚡ AI-Powered Creator Management</div>
+                    <h1 className="hero-title">
+                        Your AI Command
+                        <br />
+                        <span className="gradient-text">Center for Creators</span>
+                    </h1>
+                    <p className="hero-subtitle">
+                        The multi-agent AI platform that lets solopreneur creator managers
+                        run operations at the scale of a full agency — content, analytics,
+                        deals, and crisis management, all automated.
+                    </p>
+                    <div className="hero-buttons">
+                        <a href="/dashboard" className="btn-hero-primary">
+                            Get Started Free
+                            <span>→</span>
+                        </a>
+                        <a href="#features" className="btn-hero-secondary">
+                            See How It Works
+                        </a>
                     </div>
-                  </div>
-                  <span className={`badge ${c.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>
-                    {c.status}
-                  </span>
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Trending India */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600 }}>🔥 Trending in India</h2>
-            <a href="/trends" style={{ fontSize: '13px', color: 'var(--accent)', textDecoration: 'none' }}>See trends →</a>
-          </div>
-          {trending.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '40px 0' }}>No trending data</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {trending.map((v: any, i: number) => (
-                <div key={v.video_id} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '10px', borderRadius: '10px', background: 'var(--bg-secondary)',
-                }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '8px',
-                    background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '12px', fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
-                  }}>
-                    {i + 1}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {v.title}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      {v.channel_title} • {Number(v.views).toLocaleString()} views
-                    </div>
-                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+            </section>
+
+            {/* Features */}
+            <section className="landing-section fade-in-section delay-1" id="features">
+                <span className="section-label">Features</span>
+                <h2 className="section-title">
+                    Everything you need to manage
+                    <br />
+                    creators at scale
+                </h2>
+                <p className="section-subtitle">
+                    Six AI-powered modules working together to automate the entire creator
+                    management lifecycle.
+                </p>
+                <div className="features-grid">
+                    {features.map((f, i) => (
+                        <div
+                            key={i}
+                            className={`feature-card fade-in-section delay-${(i % 4) + 1}`}
+                        >
+                            <div className="feature-icon">{f.icon}</div>
+                            <h3>{f.title}</h3>
+                            <p>{f.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* How It Works */}
+            <section
+                className="landing-section fade-in-section delay-2"
+                id="how-it-works"
+            >
+                <div style={{ textAlign: "center" }}>
+                    <span className="section-label">How It Works</span>
+                    <h2 className="section-title">Up and running in minutes</h2>
+                    <p
+                        className="section-subtitle"
+                        style={{ margin: "0 auto" }}
+                    >
+                        Three simple steps to transform your creator management operations.
+                    </p>
+                </div>
+                <div className="steps-grid">
+                    {steps.map((s, i) => (
+                        <div key={i} className="step-item">
+                            <div className="step-number">{s.num}</div>
+                            <h3>{s.title}</h3>
+                            <p>{s.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* Stats */}
+            <section className="landing-section fade-in-section delay-3" id="stats">
+                <div className="stats-row">
+                    {stats.map((s, i) => (
+                        <div key={i} className="stat-item">
+                            <div className="stat-number">{s.number}</div>
+                            <div className="stat-desc">{s.desc}</div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* CTA */}
+            <section className="cta-section fade-in-section delay-4">
+                <div className="cta-card">
+                    <div className="glow-orb glow-orb-1" />
+                    <div className="glow-orb glow-orb-2" />
+                    <h2>Ready to 10x your creator operations?</h2>
+                    <p>
+                        Join hundreds of creator managers who are scaling their businesses
+                        with AI-powered automation.
+                    </p>
+                    <a href="/dashboard" className="btn-hero-primary">
+                        Start Free Trial
+                        <span>→</span>
+                    </a>
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="landing-footer">
+                <div className="landing-footer-text">
+                    © 2026 Nexus Solo. All rights reserved.
+                </div>
+                <ul className="landing-footer-links">
+                    <li>
+                        <a href="#">Privacy</a>
+                    </li>
+                    <li>
+                        <a href="#">Terms</a>
+                    </li>
+                    <li>
+                        <a href="#">Docs</a>
+                    </li>
+                    <li>
+                        <a href="#">Contact</a>
+                    </li>
+                </ul>
+            </footer>
         </div>
-      </div>
-    </div>
-  );
+    );
 }

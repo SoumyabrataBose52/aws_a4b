@@ -5,9 +5,9 @@ import Sidebar from "@/components/Sidebar";
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isLanding = pathname.startsWith("/landing");
+    const isDashboard = pathname.startsWith("/dashboard");
 
-    if (isLanding) {
+    if (!isDashboard) {
         return <>{children}</>;
     }
 
