@@ -25,7 +25,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
         <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
-                <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/50 px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
+                <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/50 px-4 md:px-6 glass-panel rounded-none border-t-0 border-l-0 border-r-0 sticky top-0 z-30">
                     <div className="flex items-center gap-2">
                         <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
                         <Separator orientation="vertical" className="h-4 mx-1" />

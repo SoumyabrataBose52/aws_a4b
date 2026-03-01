@@ -2,35 +2,45 @@
 
 import "./landing.css";
 import UnicornHero from "@/components/UnicornHero";
+import BlurText from "@/components/BlurText";
+import {
+    Bot,
+    BarChart3,
+    ShieldCheck,
+    PenSquare,
+    Handshake,
+    TrendingUp,
+    ArrowRight
+} from "lucide-react";
 
 const features = [
     {
-        icon: "🤖",
+        icon: <Bot size={28} />,
         title: "Multi-Agent AI Engine",
         desc: "Autonomous AI agents handle content planning, crisis detection, and deal negotiation — all working in parallel.",
     },
     {
-        icon: "📊",
+        icon: <BarChart3 size={28} />,
         title: "Real-Time Analytics",
         desc: "Track performance across YouTube, Instagram, and Twitter with unified dashboards and actionable insights.",
     },
     {
-        icon: "🛡️",
+        icon: <ShieldCheck size={28} />,
         title: "Crisis Shield",
         desc: "Detect PR risks before they escalate. AI-powered sentiment analysis monitors every mention 24/7.",
     },
     {
-        icon: "✏️",
+        icon: <PenSquare size={28} />,
         title: "Content Intelligence",
         desc: "Generate scripts, thumbnails, and posting schedules optimized by machine learning for maximum engagement.",
     },
     {
-        icon: "🤝",
+        icon: <Handshake size={28} />,
         title: "Deal Flow Automation",
         desc: "AI evaluates brand partnership offers, negotiates rates, and manages contract workflows automatically.",
     },
     {
-        icon: "📈",
+        icon: <TrendingUp size={28} />,
         title: "Trend Forecasting",
         desc: "Stay ahead of viral moments. Predictive AI surfaces emerging trends aligned with your creator's niche.",
     },
@@ -78,8 +88,8 @@ export default function LandingPage() {
                         <a href="#stats">Stats</a>
                     </li>
                     <li>
-                        <a href="/dashboard" className="nav-cta">
-                            Launch App →
+                        <a href="/dashboard" className="nav-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            Launch App <ArrowRight size={16} />
                         </a>
                     </li>
                 </ul>
@@ -91,9 +101,21 @@ export default function LandingPage() {
                 <div className="hero-content">
                     <div className="hero-badge">⚡ AI-Powered Creator Management</div>
                     <h1 className="hero-title">
-                        Your AI Command
-                        <br />
-                        <span className="gradient-text">Center for Creators</span>
+                        <BlurText
+                            text="Your AI Command"
+                            delay={150}
+                            animateBy="words"
+                            direction="top"
+                            className="hero-blur-line"
+                        />
+                        <BlurText
+                            text="Center for Creators"
+                            delay={150}
+                            animateBy="words"
+                            direction="bottom"
+                            className="hero-blur-line hero-gradient-line"
+                            spanClassName="gradient-text"
+                        />
                     </h1>
                     <p className="hero-subtitle">
                         The multi-agent AI platform that lets solopreneur creator managers
@@ -103,7 +125,7 @@ export default function LandingPage() {
                     <div className="hero-buttons">
                         <a href="/dashboard" className="btn-hero-primary">
                             Get Started Free
-                            <span>→</span>
+                            <ArrowRight size={18} />
                         </a>
                         <a href="#features" className="btn-hero-secondary">
                             See How It Works
@@ -188,7 +210,7 @@ export default function LandingPage() {
                     </p>
                     <a href="/dashboard" className="btn-hero-primary">
                         Start Free Trial
-                        <span>→</span>
+                        <ArrowRight size={18} />
                     </a>
                 </div>
             </section>
