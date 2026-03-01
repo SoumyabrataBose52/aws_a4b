@@ -1,16 +1,25 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { content, creators } from '@/lib/api';
-import { Sparkles, X, FileText, Wand2 } from 'lucide-react';
+"use client";
+
+import { useEffect, useState } from "react";
+import { content, creators } from "@/lib/api";
+import { Sparkles, FileText, Copy, Check, Loader2, Clock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function ContentPage() {
     const [list, setList] = useState<any[]>([]);
     const [creatorList, setCreatorList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showGen, setShowGen] = useState(false);
-    const [genData, setGenData] = useState({ creator_id: '', topic: '', platforms: 'instagram,youtube' });
+    const [genData, setGenData] = useState({ creator_id: "", topic: "", platforms: "instagram,youtube" });
     const [generating, setGenerating] = useState(false);
     const [genResult, setGenResult] = useState<any>(null);
+    const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
 
     useEffect(() => {
         async function load() {
@@ -18,7 +27,7 @@ export default function ContentPage() {
                 const [c, cl] = await Promise.all([content.list(), creators.list()]);
                 setList(c);
                 setCreatorList(cl);
-                if (cl.length > 0 && !genData.creator_id) setGenData(p => ({ ...p, creator_id: cl[0].id }));
+                if (cl.length > 0 && !genData.creator_id) setGenData((p) => ({ ...p, creator_id: cl[0].id }));
             } catch { }
             setLoading(false);
         }
@@ -27,13 +36,14 @@ export default function ContentPage() {
 
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!genData.topic.trim()) return;
         setGenerating(true);
         setGenResult(null);
         try {
             const result = await content.generate({
                 creator_id: genData.creator_id,
                 topic: genData.topic,
-                platforms: genData.platforms.split(',').map(p => p.trim()),
+                platforms: genData.platforms.split(",").map((p) => p.trim()),
             });
             setGenResult(result);
             setList(await content.list());
@@ -43,90 +53,184 @@ export default function ContentPage() {
         setGenerating(false);
     };
 
-    return (
-        <div className="animate-in">
-            <div className="flex justify-between items-center mb-7">
-                <div>
-                    <h1 className="text-[28px] font-bold">Content</h1>
-                    <p className="text-text-secondary text-sm">AI-generated content matched to creator voices</p>
+    const handleCopy = (text: string, platform: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedPlatform(platform);
+        setTimeout(() => setCopiedPlatform(null), 2000);
+    };
+
+    if (loading) {
+        return (
+            <div className="animate-fade-in flex flex-col gap-6">
+                <Skeleton className="h-8 w-48" />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <Skeleton className="h-96 lg:col-span-4" />
+                    <Skeleton className="h-96 lg:col-span-8" />
                 </div>
-                <button className="btn-glow flex items-center gap-2" onClick={() => setShowGen(!showGen)}>
-                    {showGen ? <><X size={14} /> Close</> : <><Sparkles size={14} /> Generate Content</>}
-                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="animate-fade-up flex flex-col gap-6 max-w-7xl">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold tracking-tight">Content Engine</h1>
+                <p className="text-sm text-muted-foreground mt-1">AI-powered multi-platform content generation.</p>
             </div>
 
-            {/* Generation Form */}
-            {showGen && (
-                <div className="glass-card pulse-glow animate-in p-6 mb-6">
-                    <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                        <Wand2 size={16} className="text-accent" /> AI Content Generator
-                    </h3>
-                    <form onSubmit={handleGenerate} className="grid grid-cols-2 gap-3">
-                        <select className="input-dark" value={genData.creator_id}
-                            onChange={e => setGenData(p => ({ ...p, creator_id: e.target.value }))}>
-                            <option value="">Select Creator</option>
-                            {creatorList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                        <input className="input-dark" placeholder="Platforms (comma-separated)" value={genData.platforms}
-                            onChange={e => setGenData(p => ({ ...p, platforms: e.target.value }))} />
-                        <input className="input-dark col-span-2" placeholder="Topic (e.g., AI tools for creators)" value={genData.topic}
-                            onChange={e => setGenData(p => ({ ...p, topic: e.target.value }))} required />
-                        <div className="col-span-2">
-                            <button className="btn-glow flex items-center gap-2" type="submit" disabled={generating || !genData.creator_id}>
-                                {generating ? <><Wand2 size={14} className="animate-spin" /> Generating...</> : <><Sparkles size={14} /> Generate</>}
-                            </button>
-                        </div>
-                    </form>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left — Generator */}
+                <div className="lg:col-span-4 space-y-4">
+                    <Card className="bg-card border-border">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                <Sparkles size={14} className="text-accent-brand" /> Generator
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleGenerate} className="flex flex-col gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Creator Voice</label>
+                                    <Select value={genData.creator_id} onValueChange={(v) => setGenData({ ...genData, creator_id: v })}>
+                                        <SelectTrigger className="bg-secondary/50 border-border h-9">
+                                            <SelectValue placeholder="Select creator..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-popover border-border">
+                                            {creatorList.map((c) => (
+                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
-                    {genResult && (
-                        <div className="mt-4 p-4 bg-bg-secondary rounded-xl">
-                            {genResult.error ? (
-                                <p className="text-danger">{genResult.error}</p>
-                            ) : (
-                                <>
-                                    <div className="flex justify-between mb-2">
-                                        <span className="badge badge-success">Generated</span>
-                                        <span className="text-xs text-text-secondary">
-                                            Style match: {((genResult.style_match_score || 0) * 100).toFixed(0)}%
-                                        </span>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Topic / Brief</label>
+                                    <textarea
+                                        className="w-full h-28 bg-secondary/50 border border-border rounded-md p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-brand/50 focus:border-accent-brand resize-none"
+                                        placeholder="Describe the content topic..."
+                                        value={genData.topic}
+                                        onChange={(e) => setGenData({ ...genData, topic: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Target Platforms</label>
+                                    <Input
+                                        value={genData.platforms}
+                                        onChange={(e) => setGenData({ ...genData, platforms: e.target.value })}
+                                        className="bg-secondary/50 border-border h-9 text-sm"
+                                        placeholder="instagram, youtube, twitter..."
+                                    />
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    disabled={generating || !genData.topic || !genData.creator_id}
+                                    className="w-full bg-accent-brand hover:bg-accent-brand/90 text-white h-9 gap-2"
+                                >
+                                    {generating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                    {generating ? "Generating..." : "Generate Drafts"}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+
+                    {/* Recent History */}
+                    <Card className="bg-card border-border">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                                <Clock size={12} /> Recent
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-border">
+                                {list.slice(0, 5).map((item) => (
+                                    <div key={item.id} className="px-4 py-3 hover:bg-accent/30 transition-colors cursor-pointer">
+                                        <p className="text-sm font-medium line-clamp-1">{item.topic || item.text?.slice(0, 50)}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Badge variant="secondary" className="text-[9px]">{item.status || "draft"}</Badge>
+                                            <span className="text-[10px] text-muted-foreground" suppressHydrationWarning>
+                                                {new Date(item.created_at || Date.now()).toLocaleDateString()}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{genResult.content?.text}</p>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Content List */}
-            {loading ? (
-                <div className="flex justify-center py-16"><div className="spinner" /></div>
-            ) : list.length === 0 ? (
-                <div className="glass-card text-center py-16">
-                    <FileText size={48} className="mx-auto mb-3 opacity-40 text-text-secondary" />
-                    <h3 className="font-semibold mb-2">No content yet</h3>
-                    <p className="text-text-secondary text-sm">Generate your first piece of AI content</p>
-                </div>
-            ) : (
-                <div className="flex flex-col gap-3">
-                    {list.map((c: any) => (
-                        <div key={c.id} className="glass-card p-4 flex items-start gap-3.5">
-                            <div className="flex-1">
-                                <div className="flex gap-2 mb-1.5 items-center">
-                                    <span className={`badge ${c.status === 'published' ? 'badge-success' : c.status === 'scheduled' ? 'badge-warning' : 'badge-neutral'}`}>{c.status}</span>
-                                    {c.platform && <span className="badge badge-accent">{c.platform}</span>}
-                                </div>
-                                <p className="text-sm leading-relaxed text-text-primary">
-                                    {c.text?.slice(0, 200)}{c.text?.length > 200 ? '...' : ''}
-                                </p>
-                                <div className="text-xs text-text-secondary mt-1.5">
-                                    Created: {new Date(c.created_at).toLocaleDateString()}
-                                </div>
+                                ))}
+                                {list.length === 0 && (
+                                    <div className="p-6 text-center text-xs text-muted-foreground">No content generated yet.</div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        </CardContent>
+                    </Card>
                 </div>
-            )}
+
+                {/* Right — Output Workspace */}
+                <Card className="lg:col-span-8 bg-card border-border flex flex-col">
+                    <CardHeader className="pb-3 border-b border-border/50">
+                        <div className="flex items-center gap-2">
+                            <FileText size={14} className="text-muted-foreground" />
+                            <CardTitle className="text-sm font-semibold">Output Workspace</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 p-0">
+                        {generating ? (
+                            <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-muted-foreground space-y-3">
+                                <div className="relative">
+                                    <Loader2 size={28} className="animate-spin text-accent-brand" />
+                                    <div className="absolute inset-0 animate-ping">
+                                        <Loader2 size={28} className="text-accent-brand/20" />
+                                    </div>
+                                </div>
+                                <p className="text-sm font-medium">Synthesizing drafts...</p>
+                                <p className="text-xs text-muted-foreground">This may take a moment</p>
+                            </div>
+                        ) : genResult ? (
+                            genResult.error ? (
+                                <div className="p-6">
+                                    <div className="p-4 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
+                                        <p className="font-semibold mb-1">Generation Failed</p>
+                                        <p className="text-xs opacity-80">{genResult.error}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-6 space-y-6 animate-fade-up">
+                                    {Object.entries(genResult)
+                                        .filter(([k]) => k !== "topic" && k !== "creator_id")
+                                        .map(([platform, text]: [string, any]) => (
+                                            <div key={platform} className="space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <Badge variant="outline" className="text-xs uppercase tracking-wider text-accent-brand border-accent-brand/30">
+                                                        {platform}
+                                                    </Badge>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 text-xs text-muted-foreground gap-1.5"
+                                                        onClick={() => handleCopy(text as string, platform)}
+                                                    >
+                                                        {copiedPlatform === platform ? <Check size={12} className="text-success" /> : <Copy size={12} />}
+                                                        {copiedPlatform === platform ? "Copied!" : "Copy"}
+                                                    </Button>
+                                                </div>
+                                                <div className="p-4 rounded-lg bg-secondary/30 border border-border/50 text-sm leading-relaxed whitespace-pre-wrap font-mono">
+                                                    {text}
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            )
+                        ) : (
+                            <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-muted-foreground">
+                                <div className="p-4 rounded-2xl bg-accent-brand/5 border border-accent-brand/10 mb-4">
+                                    <Sparkles size={28} className="text-accent-brand/30" />
+                                </div>
+                                <p className="text-sm font-medium">Ready to generate</p>
+                                <p className="text-xs text-muted-foreground mt-1">Configure the generator on the left and hit generate.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }

@@ -1,129 +1,191 @@
-'use client';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { creators } from '@/lib/api';
-import { UserPlus, X, Trash2, ExternalLink } from 'lucide-react';
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { creators } from "@/lib/api";
+import { Users, Search, Plus, MoreHorizontal } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
+import {
+    Table, TableBody, TableCell, TableHead,
+    TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function CreatorsPage() {
     const [list, setList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({ name: '', email: '', bio: '', platforms: 'youtube', youtube_channel: '' });
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState('');
+    const [view, setView] = useState<"grid" | "list">("grid");
+    const [search, setSearch] = useState("");
 
-    const loadCreators = async () => {
-        try { setList(await creators.list()); } catch { }
-        setLoading(false);
-    };
+    useEffect(() => {
+        creators.list().then(setList).catch(() => { }).finally(() => setLoading(false));
+    }, []);
 
-    useEffect(() => { loadCreators(); }, []);
+    const filtered = list.filter((c) =>
+        c.name?.toLowerCase().includes(search.toLowerCase())
+    );
 
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-        setError('');
-        try {
-            const newCreator = await creators.create({
-                name: formData.name,
-                email: formData.email || undefined,
-                bio: formData.bio || undefined,
-                platforms: formData.platforms.split(',').map(p => p.trim()).filter(Boolean),
-            });
-            if (formData.youtube_channel) {
-                try { await creators.onboard(newCreator.id, formData.youtube_channel); } catch { }
-            }
-            setFormData({ name: '', email: '', bio: '', platforms: 'youtube', youtube_channel: '' });
-            setShowForm(false);
-            loadCreators();
-        } catch (e: any) { setError(e.message); }
-        setSubmitting(false);
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this creator?')) return;
-        try { await creators.delete(id); loadCreators(); } catch { }
-    };
+    if (loading) {
+        return (
+            <div className="animate-fade-in flex flex-col gap-6">
+                <Skeleton className="h-8 w-48" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-44 rounded-lg" />)}
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="animate-in">
-            <div className="flex justify-between items-center mb-7">
+        <div className="animate-fade-up flex flex-col gap-6 max-w-7xl">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
                 <div>
-                    <h1 className="text-[28px] font-bold">Creators</h1>
-                    <p className="text-text-secondary text-sm">Manage your creator roster</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Creator Directory</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Manage profiles, platforms, and automation settings.</p>
                 </div>
-                <button className="btn-glow flex items-center gap-2" onClick={() => setShowForm(!showForm)}>
-                    {showForm ? <><X size={14} /> Cancel</> : <><UserPlus size={14} /> Add Creator</>}
-                </button>
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 text-muted-foreground" size={14} />
+                        <Input
+                            placeholder="Search creators..."
+                            className="pl-8 h-9 w-full md:w-56 bg-secondary/50 border-border text-sm"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+                        <TabsList className="h-9 bg-secondary/50">
+                            <TabsTrigger value="grid" className="text-xs px-3">Grid</TabsTrigger>
+                            <TabsTrigger value="list" className="text-xs px-3">List</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    <Button size="sm" className="bg-accent-brand hover:bg-accent-brand/90 text-white h-9 gap-1.5">
+                        <Plus size={14} /> Add Creator
+                    </Button>
+                </div>
             </div>
 
-            {/* Create Form */}
-            {showForm && (
-                <div className="glass-card animate-in p-6 mb-6">
-                    <h3 className="text-base font-semibold mb-4">New Creator</h3>
-                    {error && <div className="text-danger mb-3 text-sm">{error}</div>}
-                    <form onSubmit={handleCreate} className="grid grid-cols-2 gap-3">
-                        <input className="input-dark" placeholder="Name *" required value={formData.name}
-                            onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} />
-                        <input className="input-dark" placeholder="Email" type="email" value={formData.email}
-                            onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} />
-                        <input className="input-dark" placeholder="Platforms (comma-separated)" value={formData.platforms}
-                            onChange={e => setFormData(p => ({ ...p, platforms: e.target.value }))} />
-                        <input className="input-dark" placeholder="YouTube @handle (auto-onboard)" value={formData.youtube_channel}
-                            onChange={e => setFormData(p => ({ ...p, youtube_channel: e.target.value }))} />
-                        <textarea className="input-dark col-span-2" placeholder="Bio" value={formData.bio}
-                            onChange={e => setFormData(p => ({ ...p, bio: e.target.value }))} style={{ minHeight: '60px' }} />
-                        <div className="col-span-2">
-                            <button className="btn-glow" type="submit" disabled={submitting}>
-                                {submitting ? 'Creating...' : 'Create & Onboard'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
+            {/* Content */}
+            {filtered.length === 0 ? (
+                <Card className="bg-card border-border">
+                    <EmptyState
+                        icon={Users}
+                        title="No creators found"
+                        description={search ? "No creators match your search. Try a different query." : "Add your first creator to initialize the workspace."}
+                        actionLabel={search ? undefined : "Add Creator"}
+                    />
+                </Card>
+            ) : view === "grid" ? (
+                /* Grid View */
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+                    {filtered.map((c: any) => (
+                        <Card key={c.id} className="card-glow bg-card border-border group">
+                            <CardContent className="p-5">
+                                <div className="flex items-start justify-between mb-4">
+                                    <Link href={`/dashboard/creators/${c.id}`} className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-lg shadow-accent-brand/20">
+                                            {c.name?.charAt(0)?.toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-sm group-hover:text-accent-brand transition-colors">{c.name}</h3>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                {c.platforms?.length ? `${c.platforms.length} platform${c.platforms.length > 1 ? "s" : ""}` : "No platforms"}
+                                            </p>
+                                        </div>
+                                    </Link>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <MoreHorizontal size={14} />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="bg-popover border-border">
+                                            <DropdownMenuItem>View Profile</DropdownMenuItem>
+                                            <DropdownMenuItem>Edit Details</DropdownMenuItem>
+                                            <DropdownMenuItem className="text-danger">Deactivate</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
 
-            {/* List */}
-            {loading ? (
-                <div className="flex justify-center py-16"><div className="spinner" /></div>
-            ) : list.length === 0 ? (
-                <div className="glass-card text-center py-16">
-                    <UserPlus size={48} className="mx-auto mb-3 opacity-40 text-text-secondary" />
-                    <h3 className="font-semibold mb-2">No creators yet</h3>
-                    <p className="text-text-secondary text-sm">Add your first creator to get started</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-4">
-                    {list.map((c: any) => (
-                        <div key={c.id} className="glass-card p-5">
-                            <div className="flex items-center gap-3.5 mb-3">
-                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-gradient-start to-gradient-end flex items-center justify-center text-lg font-bold text-white shrink-0"
-                                    style={c.avatar_url ? { backgroundImage: `url(${c.avatar_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-                                    {!c.avatar_url && c.name?.charAt(0)?.toUpperCase()}
+                                <div className="flex gap-1.5 flex-wrap mb-4">
+                                    {(c.platforms || []).map((p: string) => (
+                                        <Badge key={p} variant="secondary" className="text-[10px]">{p}</Badge>
+                                    ))}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="font-semibold text-[15px] truncate">{c.name}</div>
-                                    <div className="text-xs text-text-secondary truncate">{c.email || 'No email'}</div>
+
+                                <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                                    <Badge
+                                        variant="outline"
+                                        className={`text-[10px] ${c.status === "active" ? "bg-success/10 text-success border-success/20" : "text-muted-foreground"}`}
+                                    >
+                                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${c.status === "active" ? "bg-success" : "bg-muted-foreground"}`} />
+                                        {c.status}
+                                    </Badge>
+                                    <Link href={`/dashboard/creators/${c.id}`}>
+                                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7">
+                                            Details →
+                                        </Button>
+                                    </Link>
                                 </div>
-                                <span className={`badge ${c.status === 'active' ? 'badge-success' : 'badge-warning'}`}>{c.status}</span>
-                            </div>
-                            {c.bio && <p className="text-[13px] text-text-secondary mb-3 leading-relaxed">{c.bio.slice(0, 120)}{c.bio.length > 120 ? '...' : ''}</p>}
-                            <div className="flex gap-1.5 flex-wrap mb-3.5">
-                                {(c.platforms || []).map((p: string) => (
-                                    <span key={p} className="badge badge-accent">{p}</span>
-                                ))}
-                            </div>
-                            <div className="flex gap-2">
-                                <Link href={`/dashboard/creators/${c.id}`}
-                                    className="btn-secondary flex-1 text-center text-[13px] py-2 px-3 no-underline flex items-center justify-center gap-1.5">
-                                    <ExternalLink size={12} /> View Profile
-                                </Link>
-                                <button className="btn-secondary text-[13px] py-2 px-3 text-danger flex items-center gap-1.5" onClick={() => handleDelete(c.id)}>
-                                    <Trash2 size={12} /> Delete
-                                </button>
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
+            ) : (
+                /* List View */
+                <Card className="bg-card border-border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="hover:bg-transparent border-border">
+                                <TableHead className="text-xs">Creator</TableHead>
+                                <TableHead className="text-xs">Platforms</TableHead>
+                                <TableHead className="text-xs">Status</TableHead>
+                                <TableHead className="text-xs text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filtered.map((c: any) => (
+                                <TableRow key={c.id} className="group border-border hover:bg-accent/30">
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-xs font-bold text-white">
+                                                {c.name?.charAt(0)?.toUpperCase()}
+                                            </div>
+                                            <span className="font-medium text-sm">{c.name}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex gap-1">
+                                            {(c.platforms || []).map((p: string) => (
+                                                <Badge key={p} variant="secondary" className="text-[10px]">{p}</Badge>
+                                            ))}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className={`text-[10px] ${c.status === "active" ? "bg-success/10 text-success border-success/20" : ""}`}>
+                                            {c.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Link href={`/dashboard/creators/${c.id}`}>
+                                            <Button variant="ghost" size="sm" className="text-xs h-7">Manage</Button>
+                                        </Link>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </Card>
             )}
         </div>
     );

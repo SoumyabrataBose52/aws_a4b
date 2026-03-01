@@ -1,24 +1,27 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { youtube } from '@/lib/api';
-import { TrendingUp, Search, Eye, ThumbsUp, MessageCircle } from 'lucide-react';
+"use client";
+
+import { useEffect, useState } from "react";
+import { youtube } from "@/lib/api";
+import { TrendingUp, Search, Flame, PlayCircle, Eye } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ResponsiveGrid } from "@/components/ui/responsive-grid";
 
 export default function TrendsPage() {
     const [trending, setTrending] = useState<any[]>([]);
     const [searchResults, setSearchResults] = useState<any[]>([]);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [searching, setSearching] = useState(false);
 
     useEffect(() => {
-        async function load() {
-            try {
-                const t = await youtube.trending('IN', 20);
-                setTrending(t.videos || []);
-            } catch { }
-            setLoading(false);
-        }
-        load();
+        youtube.trending("IN", 20)
+            .then((t) => setTrending(t.videos || []))
+            .catch(() => { })
+            .finally(() => setLoading(false));
     }, []);
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -38,71 +41,132 @@ export default function TrendsPage() {
         return v.toString();
     };
 
-    return (
-        <div className="animate-in">
-            <div className="mb-7">
-                <h1 className="text-[28px] font-bold flex items-center gap-2">
-                    <TrendingUp size={24} className="text-accent" /> Trends
-                </h1>
-                <p className="text-text-secondary text-sm">Live YouTube trending data from India</p>
+    if (loading) {
+        return (
+            <div className="animate-fade-in flex flex-col gap-6">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-10 w-full md:w-96" />
+                <ResponsiveGrid autoFill minItemWidth={280} gap={16}>
+                    {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-64 rounded-lg" />)}
+                </ResponsiveGrid>
             </div>
+        );
+    }
 
-            {/* Search */}
-            <form onSubmit={handleSearch} className="flex gap-2.5 mb-6">
-                <input className="input-dark flex-1" placeholder="Search YouTube for topic..." value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)} />
-                <button className="btn-glow flex items-center gap-2" type="submit" disabled={searching}>
-                    <Search size={14} /> {searching ? 'Searching...' : 'Search'}
-                </button>
-            </form>
+    return (
+        <div className="animate-fade-up flex flex-col gap-6">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                        Discovery & Trends
+                        <span className="relative flex h-2 w-2 ml-1">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                        </span>
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">Real-time YouTube trending intelligence for India.</p>
+                </div>
+                <form onSubmit={handleSearch} className="flex gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 text-muted-foreground" size={14} />
+                        <Input
+                            placeholder="Search YouTube..."
+                            className="pl-8 h-9 w-full md:w-64 bg-secondary/50 border-border text-sm"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <Button type="submit" size="sm" disabled={searching} className="bg-accent-brand hover:bg-accent-brand/90 text-white h-9">
+                        {searching ? "Searching..." : "Search"}
+                    </Button>
+                </form>
+            </div>
 
             {/* Search Results */}
             {searchResults.length > 0 && (
-                <div className="mb-7">
-                    <h2 className="text-base font-semibold mb-3.5">Search Results: &quot;{searchQuery}&quot;</h2>
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5">
-                        {searchResults.map((v: any) => (
-                            <div key={v.video_id} className="glass-card p-3.5">
-                                {v.thumbnail && <img src={v.thumbnail} alt={v.title} className="w-full rounded-[10px] mb-2.5" />}
-                                <div className="font-medium text-sm mb-1 leading-snug">{v.title}</div>
-                                <div className="text-xs text-text-secondary">{v.channel_title}</div>
-                            </div>
-                        ))}
+                <div>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-sm font-semibold flex items-center gap-2">
+                            <Search size={14} className="text-accent-brand" /> Search Results
+                        </h2>
+                        <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setSearchResults([])}>
+                            Clear
+                        </Button>
                     </div>
+                    <ResponsiveGrid autoFill minItemWidth={280} gap={16} className="stagger-children">
+                        {searchResults.map((r: any) => (
+                            <Card key={r.video_id} className="card-glow bg-card border-border group overflow-hidden">
+                                <div className="relative aspect-video bg-secondary overflow-hidden">
+                                    <img src={r.thumbnail} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <PlayCircle size={40} className="text-white drop-shadow-lg" />
+                                    </div>
+                                </div>
+                                <CardContent className="p-4">
+                                    <p className="text-sm font-medium line-clamp-2 leading-snug group-hover:text-accent-brand transition-colors">
+                                        {r.title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-2">{r.channel_title}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </ResponsiveGrid>
                 </div>
             )}
 
-            {/* Trending */}
-            <h2 className="text-base font-semibold mb-3.5 flex items-center gap-2">
-                <TrendingUp size={16} className="text-warning" /> Trending Now
-            </h2>
-            {loading ? (
-                <div className="flex justify-center py-16"><div className="spinner" /></div>
-            ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5">
+            {/* Trending Cards */}
+            <div>
+                <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp size={16} className="text-warning" />
+                    <h2 className="text-sm font-semibold">Trending in India</h2>
+                    <Badge variant="secondary" className="text-[10px] ml-1">{trending.length} videos</Badge>
+                </div>
+
+                <ResponsiveGrid autoFill minItemWidth={280} gap={16} className="stagger-children">
                     {trending.map((v: any, i: number) => (
-                        <div key={v.video_id} className="glass-card overflow-hidden">
-                            {v.thumbnail && (
-                                <div className="relative">
-                                    <img src={v.thumbnail} alt={v.title} className="w-full h-[170px] object-cover" />
-                                    <div className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/70 backdrop-blur-sm flex items-center justify-center text-[13px] font-bold text-accent">
-                                        {i + 1}
-                                    </div>
+                        <Card key={v.video_id} className="card-glow bg-card border-border group overflow-hidden">
+                            {/* Thumbnail */}
+                            <div className="relative aspect-video bg-secondary overflow-hidden">
+                                <img src={v.thumbnail} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <PlayCircle size={40} className="text-white drop-shadow-lg" />
                                 </div>
-                            )}
-                            <div className="p-3.5">
-                                <div className="font-medium text-sm mb-1.5 leading-snug line-clamp-2">{v.title}</div>
-                                <div className="text-xs text-text-secondary mb-2">{v.channel_title}</div>
-                                <div className="flex gap-3 text-xs text-text-secondary">
-                                    <span className="flex items-center gap-1"><Eye size={12} /> {formatViews(v.views)}</span>
-                                    <span className="flex items-center gap-1"><ThumbsUp size={12} /> {formatViews(v.likes)}</span>
-                                    <span className="flex items-center gap-1"><MessageCircle size={12} /> {formatViews(v.comments)}</span>
+                                {/* Rank Badge */}
+                                <div className="absolute top-2 left-2">
+                                    {i < 3 ? (
+                                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm ${i === 0 ? "bg-danger/80 text-white" : i === 1 ? "bg-warning/80 text-white" : "bg-accent-brand/80 text-white"
+                                            }`}>
+                                            <Flame size={10} /> #{i + 1}
+                                        </div>
+                                    ) : (
+                                        <div className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-black/60 text-white backdrop-blur-sm">
+                                            #{i + 1}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        </div>
+
+                            {/* Content */}
+                            <CardContent className="p-4">
+                                <p className="text-sm font-medium line-clamp-2 leading-snug group-hover:text-accent-brand transition-colors min-h-[2.5rem]">
+                                    {v.title}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-2 line-clamp-1">{v.channel_title}</p>
+                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                        <Eye size={12} />
+                                        <span>{formatViews(Number(v.views))}</span>
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground" suppressHydrationWarning>
+                                        {new Date(v.published_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
                     ))}
-                </div>
-            )}
+                </ResponsiveGrid>
+            </div>
         </div>
     );
 }

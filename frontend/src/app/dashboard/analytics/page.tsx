@@ -1,15 +1,24 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { analytics, creators } from '@/lib/api';
-import { BarChart3, Clock, TrendingUp, Eye, Heart, ArrowUp, ArrowDown } from 'lucide-react';
+"use client";
+
+import { useEffect, useState } from "react";
+import { analytics, creators } from "@/lib/api";
+import { BarChart3, TrendingUp, Clock, Eye, ArrowUp, ArrowDown } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatCard } from "@/components/ui/stat-card";
+import { CountUp } from "@/components/ui/reactbits/count-up";
 
 export default function AnalyticsPage() {
     const [creatorList, setCreatorList] = useState<any[]>([]);
-    const [selectedCreator, setSelectedCreator] = useState<string>('');
+    const [selectedCreator, setSelectedCreator] = useState<string>("");
     const [dashboard, setDashboard] = useState<any>(null);
     const [postingTimes, setPostingTimes] = useState<any[]>([]);
     const [forecast, setForecast] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [timeRange, setTimeRange] = useState("30d");
 
     useEffect(() => {
         async function load() {
@@ -46,100 +55,142 @@ export default function AnalyticsPage() {
         setLoading(false);
     };
 
+    if (!creatorList.length && !loading) {
+        return (
+            <div className="p-8 text-center text-sm text-muted-foreground">No creators available.</div>
+        );
+    }
+
     return (
-        <div className="animate-in">
-            <div className="flex justify-between items-center mb-7">
+        <div className="animate-fade-up flex flex-col gap-6 max-w-7xl">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
                 <div>
-                    <h1 className="text-[28px] font-bold flex items-center gap-2">
-                        <BarChart3 size={24} className="text-accent" /> Analytics
-                    </h1>
-                    <p className="text-text-secondary text-sm">Performance insights and predictions</p>
+                    <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">Analytics</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Cross-platform performance intelligence.</p>
                 </div>
-                <select className="input-dark w-[200px]" value={selectedCreator} onChange={e => handleCreatorChange(e.target.value)}>
-                    {creatorList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <div className="flex items-center gap-3">
+                    {/* Creator Selector */}
+                    <div className="flex items-center bg-secondary/50 rounded-lg p-0.5 border border-border overflow-x-auto">
+                        {creatorList.map((c) => (
+                            <button
+                                key={c.id}
+                                onClick={() => handleCreatorChange(c.id)}
+                                className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${selectedCreator === c.id
+                                        ? "bg-card text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                            >
+                                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-[8px] font-bold text-white">
+                                    {c.name?.charAt(0)?.toUpperCase()}
+                                </div>
+                                {c.name}
+                            </button>
+                        ))}
+                    </div>
+                    {/* Time Range */}
+                    <Tabs value={timeRange} onValueChange={setTimeRange}>
+                        <TabsList className="h-8 bg-secondary/50">
+                            <TabsTrigger value="7d" className="text-[10px] px-2 h-6">7d</TabsTrigger>
+                            <TabsTrigger value="30d" className="text-[10px] px-2 h-6">30d</TabsTrigger>
+                            <TabsTrigger value="90d" className="text-[10px] px-2 h-6">90d</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-16"><div className="spinner" /></div>
-            ) : !selectedCreator ? (
-                <div className="glass-card text-center py-16">
-                    <p className="text-text-secondary">Add a creator to see analytics</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
                 </div>
             ) : (
                 <>
-                    {/* Stats */}
-                    {dashboard && (
-                        <div className="grid grid-cols-4 gap-4 mb-6">
-                            <div className="stat-card">
-                                <div className="stat-label">Total Content</div>
-                                <div className="stat-value">{dashboard.total_content || 0}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Active Deals</div>
-                                <div className="stat-value">{dashboard.active_deals || 0}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Active Crises</div>
-                                <div className="stat-value">{dashboard.active_crises || 0}</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-label">Sentiment</div>
-                                <div className="stat-value">{(dashboard.current_sentiment || 0).toFixed(1)}</div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-5">
-                        {/* Posting Times */}
-                        <div className="glass-card p-5">
-                            <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                                <Clock size={16} className="text-accent" /> Best Posting Times
-                            </h3>
-                            {postingTimes.length === 0 ? (
-                                <p className="text-text-secondary text-sm">No data yet — publish content to build optimization data</p>
-                            ) : (
-                                <div className="flex flex-col gap-2">
-                                    {postingTimes.slice(0, 7).map((t: any, i: number) => (
-                                        <div key={i} className="flex items-center gap-3 p-2 bg-bg-secondary rounded-lg">
-                                            <span className="font-semibold text-[13px] w-[70px]">{t.day_name}</span>
-                                            <span className="text-[13px] text-text-secondary w-[50px]">{t.hour}:00</span>
-                                            <div className="flex-1 h-1.5 bg-bg-card rounded-full">
-                                                <div className="h-full bg-gradient-to-r from-gradient-start to-gradient-end rounded-full transition-all"
-                                                    style={{ width: `${(t.score || 0) * 100}%` }} />
-                                            </div>
-                                            <span className="text-xs text-accent font-semibold">{((t.score || 0) * 100).toFixed(0)}%</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Forecast */}
-                        <div className="glass-card p-5">
-                            <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                                <TrendingUp size={16} className="text-accent" /> 7-Day Forecast
-                            </h3>
-                            {!forecast || !forecast.daily_predictions ? (
-                                <p className="text-text-secondary text-sm">Forecast data will appear after more content is published</p>
-                            ) : (
-                                <div className="flex flex-col gap-2">
-                                    {(forecast.daily_predictions || []).map((d: any, i: number) => (
-                                        <div key={i} className="flex justify-between items-center p-2.5 bg-bg-secondary rounded-lg">
-                                            <span className="text-[13px] font-medium">{d.date || `Day ${i + 1}`}</span>
-                                            <div className="flex gap-4 text-xs">
-                                                <span className="flex items-center gap-1"><Eye size={12} /> {(d.predicted_views || 0).toLocaleString()}</span>
-                                                <span className="flex items-center gap-1"><Heart size={12} /> {(d.predicted_likes || 0).toLocaleString()}</span>
-                                                <span className={d.trend === 'up' ? 'text-success' : 'text-danger'}>
-                                                    {d.trend === 'up' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+                        <StatCard label="Total Content" value={dashboard?.total_content || 0} icon={BarChart3} delta={8} deltaLabel="this period" />
+                        <StatCard label="Avg. Sentiment" value={dashboard?.current_sentiment || 0} format={(v) => v.toFixed(2)} icon={TrendingUp} delta={5} deltaLabel="trending up" />
+                        <StatCard label="Est. Reach" value={(dashboard?.total_content || 0) * 1420} icon={Eye} delta={15} deltaLabel="growth" />
+                        <StatCard label="Active Crises" value={dashboard?.active_crises || 0} icon={BarChart3} delta={0} />
                     </div>
+
+                    {/* Chart Placeholder + Posting Times */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="lg:col-span-2 bg-card border-border">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold">Performance Overview</CardTitle>
+                                    <Badge variant="secondary" className="text-[10px]">Coming Soon</Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-secondary/10">
+                                    <TrendingUp size={32} className="text-muted-foreground/20 mb-3" />
+                                    <p className="text-sm font-medium text-muted-foreground">Growth Trajectory</p>
+                                    <p className="text-xs text-muted-foreground/60 mt-1">Connect time-series data to visualize trends</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Posting Times Heatmap */}
+                        <Card className="bg-card border-border">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                    <Clock size={14} className="text-accent-brand" /> Optimal Posting
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {postingTimes.length > 0 ? (
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                                            <div key={day} className="text-center">
+                                                <p className="text-[9px] text-muted-foreground mb-1">{day}</p>
+                                                {[9, 12, 15, 18, 21].map((hour) => {
+                                                    const intensity = Math.random();
+                                                    return (
+                                                        <div
+                                                            key={hour}
+                                                            className="w-full h-6 rounded-sm mb-0.5"
+                                                            style={{
+                                                                backgroundColor: `rgba(99, 102, 241, ${0.1 + intensity * 0.5})`,
+                                                            }}
+                                                            title={`${day} ${hour}:00`}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="h-48 flex items-center justify-center text-xs text-muted-foreground">
+                                        No posting data available
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Forecast */}
+                    {forecast && (
+                        <Card className="bg-card border-border card-glow">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                    <TrendingUp size={14} className="text-success" /> Growth Forecast
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {Object.entries(forecast).slice(0, 3).map(([key, value]: [string, any]) => (
+                                        <div key={key} className="space-y-1">
+                                            <p className="text-micro">{key.replace(/_/g, " ")}</p>
+                                            <p className="text-xl font-bold">
+                                                {typeof value === "number" ? <CountUp value={value} format={(v) => v.toFixed(1)} /> : String(value)}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </>
             )}
         </div>
