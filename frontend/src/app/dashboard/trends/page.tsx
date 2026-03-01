@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { youtube } from '@/lib/api';
+import { TrendingUp, Search, Eye, ThumbsUp, MessageCircle } from 'lucide-react';
 
 export default function TrendsPage() {
     const [trending, setTrending] = useState<any[]>([]);
@@ -39,30 +40,32 @@ export default function TrendsPage() {
 
     return (
         <div className="animate-in">
-            <div style={{ marginBottom: '28px' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: 700 }}>📈 Trends</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Live YouTube trending data from India</p>
+            <div className="mb-7">
+                <h1 className="text-[28px] font-bold flex items-center gap-2">
+                    <TrendingUp size={24} className="text-accent" /> Trends
+                </h1>
+                <p className="text-text-secondary text-sm">Live YouTube trending data from India</p>
             </div>
 
             {/* Search */}
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
-                <input className="input-dark" placeholder="Search YouTube for topic..." value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)} style={{ flex: 1 }} />
-                <button className="btn-glow" type="submit" disabled={searching}>
-                    {searching ? 'Searching...' : '🔍 Search'}
+            <form onSubmit={handleSearch} className="flex gap-2.5 mb-6">
+                <input className="input-dark flex-1" placeholder="Search YouTube for topic..." value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)} />
+                <button className="btn-glow flex items-center gap-2" type="submit" disabled={searching}>
+                    <Search size={14} /> {searching ? 'Searching...' : 'Search'}
                 </button>
             </form>
 
             {/* Search Results */}
             {searchResults.length > 0 && (
-                <div style={{ marginBottom: '28px' }}>
-                    <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '14px' }}>Search Results: &quot;{searchQuery}&quot;</h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '14px' }}>
+                <div className="mb-7">
+                    <h2 className="text-base font-semibold mb-3.5">Search Results: &quot;{searchQuery}&quot;</h2>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5">
                         {searchResults.map((v: any) => (
-                            <div key={v.video_id} className="glass-card" style={{ padding: '14px' }}>
-                                {v.thumbnail && <img src={v.thumbnail} alt={v.title} style={{ width: '100%', borderRadius: '10px', marginBottom: '10px' }} />}
-                                <div style={{ fontWeight: 500, fontSize: '14px', marginBottom: '4px', lineHeight: 1.4 }}>{v.title}</div>
-                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v.channel_title}</div>
+                            <div key={v.video_id} className="glass-card p-3.5">
+                                {v.thumbnail && <img src={v.thumbnail} alt={v.title} className="w-full rounded-[10px] mb-2.5" />}
+                                <div className="font-medium text-sm mb-1 leading-snug">{v.title}</div>
+                                <div className="text-xs text-text-secondary">{v.channel_title}</div>
                             </div>
                         ))}
                     </div>
@@ -70,38 +73,30 @@ export default function TrendsPage() {
             )}
 
             {/* Trending */}
-            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '14px' }}>🔥 Trending Now</h2>
+            <h2 className="text-base font-semibold mb-3.5 flex items-center gap-2">
+                <TrendingUp size={16} className="text-warning" /> Trending Now
+            </h2>
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner" /></div>
+                <div className="flex justify-center py-16"><div className="spinner" /></div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '14px' }}>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5">
                     {trending.map((v: any, i: number) => (
-                        <div key={v.video_id} className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
+                        <div key={v.video_id} className="glass-card overflow-hidden">
                             {v.thumbnail && (
-                                <div style={{ position: 'relative' }}>
-                                    <img src={v.thumbnail} alt={v.title} style={{ width: '100%', height: '170px', objectFit: 'cover' }} />
-                                    <div style={{
-                                        position: 'absolute', top: '8px', left: '8px',
-                                        width: '28px', height: '28px', borderRadius: '8px',
-                                        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '13px', fontWeight: 700, color: 'var(--accent)',
-                                    }}>
+                                <div className="relative">
+                                    <img src={v.thumbnail} alt={v.title} className="w-full h-[170px] object-cover" />
+                                    <div className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-black/70 backdrop-blur-sm flex items-center justify-center text-[13px] font-bold text-accent">
                                         {i + 1}
                                     </div>
                                 </div>
                             )}
-                            <div style={{ padding: '14px' }}>
-                                <div style={{ fontWeight: 500, fontSize: '14px', marginBottom: '6px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {v.title}
-                                </div>
-                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                                    {v.channel_title}
-                                </div>
-                                <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                    <span>👁️ {formatViews(v.views)}</span>
-                                    <span>👍 {formatViews(v.likes)}</span>
-                                    <span>💬 {formatViews(v.comments)}</span>
+                            <div className="p-3.5">
+                                <div className="font-medium text-sm mb-1.5 leading-snug line-clamp-2">{v.title}</div>
+                                <div className="text-xs text-text-secondary mb-2">{v.channel_title}</div>
+                                <div className="flex gap-3 text-xs text-text-secondary">
+                                    <span className="flex items-center gap-1"><Eye size={12} /> {formatViews(v.views)}</span>
+                                    <span className="flex items-center gap-1"><ThumbsUp size={12} /> {formatViews(v.likes)}</span>
+                                    <span className="flex items-center gap-1"><MessageCircle size={12} /> {formatViews(v.comments)}</span>
                                 </div>
                             </div>
                         </div>

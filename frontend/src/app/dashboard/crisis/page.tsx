@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { crisis, creators } from '@/lib/api';
+import { Shield, X, AlertTriangle, Zap, Brain } from 'lucide-react';
 
 export default function CrisisPage() {
     const [list, setList] = useState<any[]>([]);
@@ -49,9 +50,7 @@ export default function CrisisPage() {
         try {
             const strats = await crisis.generateStrategies(crisisId);
             setStrategies(prev => ({ ...prev, [crisisId]: strats }));
-        } catch (e: any) {
-            console.error(e);
-        }
+        } catch (e: any) { console.error(e); }
         setStrategizing(null);
     };
 
@@ -61,19 +60,21 @@ export default function CrisisPage() {
 
     return (
         <div className="animate-in">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+            <div className="flex justify-between items-center mb-7">
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 700 }}>🛡️ Crisis Center</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Monitor and respond to creator crises</p>
+                    <h1 className="text-[28px] font-bold flex items-center gap-2">
+                        <Shield size={24} className="text-accent" /> Crisis Center
+                    </h1>
+                    <p className="text-text-secondary text-sm">Monitor and respond to creator crises</p>
                 </div>
-                <button className="btn-glow" onClick={() => setShowForm(!showForm)}>
-                    {showForm ? '✕ Close' : '🚨 Report Crisis'}
+                <button className="btn-glow flex items-center gap-2" onClick={() => setShowForm(!showForm)}>
+                    {showForm ? <><X size={14} /> Close</> : <><AlertTriangle size={14} /> Report Crisis</>}
                 </button>
             </div>
 
             {showForm && (
-                <div className="glass-card animate-in" style={{ padding: '24px', marginBottom: '24px' }}>
-                    <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="glass-card animate-in p-6 mb-6">
+                    <form onSubmit={handleCreate} className="grid grid-cols-2 gap-3">
                         <select className="input-dark" value={formData.creator_id} required
                             onChange={e => setFormData(p => ({ ...p, creator_id: e.target.value }))}>
                             <option value="">Select Creator</option>
@@ -90,61 +91,62 @@ export default function CrisisPage() {
                             onChange={e => setFormData(p => ({ ...p, affected_platforms: e.target.value }))} />
                         <input className="input-dark" placeholder="Sentiment Drop (0-1)" type="number" step="0.1" min="0" max="1"
                             value={formData.sentiment_drop} onChange={e => setFormData(p => ({ ...p, sentiment_drop: parseFloat(e.target.value) }))} />
-                        <textarea className="input-dark" placeholder="Triggering messages (one per line)" value={formData.triggering_messages}
-                            onChange={e => setFormData(p => ({ ...p, triggering_messages: e.target.value }))} style={{ gridColumn: '1 / -1' }} />
-                        <button className="btn-glow" type="submit" disabled={submitting} style={{ gridColumn: '1 / -1' }}>
-                            {submitting ? 'Creating...' : '🚨 Create Crisis Alert'}
+                        <textarea className="input-dark col-span-2" placeholder="Triggering messages (one per line)" value={formData.triggering_messages}
+                            onChange={e => setFormData(p => ({ ...p, triggering_messages: e.target.value }))} />
+                        <button className="btn-glow col-span-2 flex items-center justify-center gap-2" type="submit" disabled={submitting}>
+                            <AlertTriangle size={14} /> {submitting ? 'Creating...' : 'Create Crisis Alert'}
                         </button>
                     </form>
                 </div>
             )}
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner" /></div>
+                <div className="flex justify-center py-16"><div className="spinner" /></div>
             ) : list.length === 0 ? (
-                <div className="glass-card" style={{ textAlign: 'center', padding: '60px' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
-                    <h3 style={{ fontWeight: 600 }}>No active crises</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>All creators are in good standing</p>
+                <div className="glass-card text-center py-16">
+                    <Shield size={48} className="mx-auto mb-3 text-success opacity-60" />
+                    <h3 className="font-semibold">No active crises</h3>
+                    <p className="text-text-secondary text-sm">All creators are in good standing</p>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div className="flex flex-col gap-3.5">
                     {list.map((c: any) => {
                         const creatorName = creatorList.find((cr: any) => cr.id === c.creator_id)?.name || 'Unknown';
                         return (
-                            <div key={c.id} className="glass-card" style={{ padding: '20px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div key={c.id} className="glass-card p-5">
+                                <div className="flex justify-between items-center mb-2.5">
+                                    <div className="flex items-center gap-2.5">
                                         <span className={`badge ${threatColors[c.threat_level] || 'badge-neutral'}`}>{c.threat_level}</span>
-                                        <span style={{ fontWeight: 600 }}>{creatorName}</span>
+                                        <span className="font-semibold">{creatorName}</span>
                                         <span className={`badge ${c.status === 'active' ? 'badge-danger' : 'badge-success'}`}>{c.status}</span>
                                     </div>
-                                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                    <span className="text-xs text-text-secondary">
                                         Sentiment drop: {((c.sentiment_drop || 0) * 100).toFixed(0)}%
                                     </span>
                                 </div>
-                                <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                                <div className="flex gap-1.5 mb-3 flex-wrap">
                                     {(c.affected_platforms || []).map((p: string) => <span key={p} className="badge badge-accent">{p}</span>)}
                                 </div>
 
-                                {/* Strategies */}
                                 {strategies[c.id] && strategies[c.id].length > 0 && (
-                                    <div style={{ marginBottom: '12px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '10px' }}>
-                                        <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>AI Response Strategies:</div>
+                                    <div className="mb-3 p-3 bg-bg-secondary rounded-[10px]">
+                                        <div className="text-[13px] font-semibold mb-2 flex items-center gap-1.5">
+                                            <Brain size={14} className="text-accent" /> AI Response Strategies
+                                        </div>
                                         {strategies[c.id].map((s: any, i: number) => (
-                                            <div key={i} style={{ padding: '8px', background: 'var(--bg-card)', borderRadius: '8px', marginBottom: '6px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                            <div key={i} className="p-2 bg-bg-card rounded-lg mb-1.5">
+                                                <div className="flex justify-between mb-1">
                                                     <span className="badge badge-accent">{s.type}</span>
                                                     <span className={`badge ${s.risk_level === 'low' ? 'badge-success' : s.risk_level === 'high' ? 'badge-danger' : 'badge-warning'}`}>{s.risk_level} risk</span>
                                                 </div>
-                                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{s.message?.slice(0, 200)}</p>
+                                                <p className="text-[13px] text-text-secondary">{s.message?.slice(0, 200)}</p>
                                             </div>
                                         ))}
                                     </div>
                                 )}
 
-                                <button className="btn-secondary" onClick={() => generateStrats(c.id)} disabled={strategizing === c.id} style={{ fontSize: '13px' }}>
-                                    {strategizing === c.id ? '🧠 Generating...' : '⚡ Generate Strategies'}
+                                <button className="btn-secondary text-[13px] flex items-center gap-2" onClick={() => generateStrats(c.id)} disabled={strategizing === c.id}>
+                                    <Zap size={14} /> {strategizing === c.id ? 'Generating...' : 'Generate Strategies'}
                                 </button>
                             </div>
                         );

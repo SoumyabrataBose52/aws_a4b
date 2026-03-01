@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { creators, analytics, system, youtube } from '@/lib/api';
+import { Users, TrendingUp, Flame, ArrowRight } from 'lucide-react';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -19,13 +21,11 @@ export default function Dashboard() {
         setHealth(h);
         setCreatorList(cl);
 
-        // Load dashboard for first creator
         if (cl.length > 0) {
           const dash = await analytics.dashboard(cl[0].id);
           setStats(dash);
         }
 
-        // Load trending
         try {
           const t = await youtube.trending('IN', 5);
           setTrending(t.videos || []);
@@ -40,7 +40,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="spinner" style={{ width: 40, height: 40 }} />
       </div>
     );
@@ -48,15 +48,16 @@ export default function Dashboard() {
 
   return (
     <div className="animate-in">
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '4px' }}>Command Center</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-[28px] font-bold mb-1">Command Center</h1>
+        <p className="text-text-secondary text-sm">
           {health ? `Backend: ${health.status} • ${new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}` : 'Connecting...'}
         </p>
       </div>
 
-      {/* Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4 mb-7">
         <div className="stat-card">
           <div className="stat-label">Total Creators</div>
           <div className="stat-value">{creatorList.length}</div>
@@ -67,9 +68,7 @@ export default function Dashboard() {
         </div>
         <div className="stat-card">
           <div className="stat-label">Active Crises</div>
-          <div className="stat-value" style={stats?.active_crises > 0 ? { background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : undefined}>
-            {stats?.active_crises || 0}
-          </div>
+          <div className="stat-value">{stats?.active_crises || 0}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Sentiment Score</div>
@@ -77,81 +76,71 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      {/* Two-column */}
+      <div className="grid grid-cols-2 gap-5">
         {/* Creators */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600 }}>Creators</h2>
-            <a href="/dashboard/creators" style={{ fontSize: '13px', color: 'var(--accent)', textDecoration: 'none' }}>View all →</a>
+        <div className="glass-card p-5">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <Users size={16} className="text-accent" />
+              Creators
+            </h2>
+            <Link href="/dashboard/creators" className="text-[13px] text-accent hover:underline flex items-center gap-1">
+              View all <ArrowRight size={12} />
+            </Link>
           </div>
           {creatorList.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>👤</div>
+            <div className="text-center py-10 text-text-secondary">
+              <Users size={32} className="mx-auto mb-2 opacity-50" />
               <p>No creators yet</p>
-              <a href="/dashboard/creators" className="btn-glow" style={{ display: 'inline-block', marginTop: '12px', textDecoration: 'none' }}>
+              <Link href="/dashboard/creators" className="btn-glow inline-block mt-3 no-underline">
                 Add Creator
-              </a>
+              </Link>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="flex flex-col gap-2.5">
               {creatorList.slice(0, 5).map((c: any) => (
-                <a key={c.id} href={`/dashboard/creators/${c.id}`} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '10px', borderRadius: '10px', textDecoration: 'none', color: 'inherit',
-                  background: 'var(--bg-secondary)', transition: 'all 0.2s',
-                }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--gradient-start), var(--gradient-end))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '14px', fontWeight: 700, color: '#fff',
-                  }}>
+                <Link key={c.id} href={`/dashboard/creators/${c.id}`}
+                  className="flex items-center gap-3 p-2.5 rounded-[10px] no-underline text-inherit bg-bg-secondary hover:bg-bg-card-hover transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gradient-start to-gradient-end flex items-center justify-center text-sm font-bold text-white shrink-0">
                     {c.name?.charAt(0)?.toUpperCase()}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '14px' }}>{c.name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {c.platforms?.join(', ') || 'No platforms'}
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm truncate">{c.name}</div>
+                    <div className="text-xs text-text-secondary truncate">{c.platforms?.join(', ') || 'No platforms'}</div>
                   </div>
                   <span className={`badge ${c.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>
                     {c.status}
                   </span>
-                </a>
+                </Link>
               ))}
             </div>
           )}
         </div>
 
         {/* Trending India */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600 }}>🔥 Trending in India</h2>
-            <a href="/dashboard/trends" style={{ fontSize: '13px', color: 'var(--accent)', textDecoration: 'none' }}>See trends →</a>
+        <div className="glass-card p-5">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <Flame size={16} className="text-warning" />
+              Trending in India
+            </h2>
+            <Link href="/dashboard/trends" className="text-[13px] text-accent hover:underline flex items-center gap-1">
+              See trends <ArrowRight size={12} />
+            </Link>
           </div>
           {trending.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '40px 0' }}>No trending data</p>
+            <p className="text-text-secondary text-center py-10">No trending data</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="flex flex-col gap-2.5">
               {trending.map((v: any, i: number) => (
-                <div key={v.video_id} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '10px', borderRadius: '10px', background: 'var(--bg-secondary)',
-                }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '8px',
-                    background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '12px', fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
-                  }}>
+                <div key={v.video_id} className="flex items-center gap-3 p-2.5 rounded-[10px] bg-bg-secondary">
+                  <div className="w-7 h-7 rounded-lg bg-bg-card flex items-center justify-center text-xs font-bold text-accent shrink-0">
                     {i + 1}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {v.title}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-[13px] truncate">{v.title}</div>
+                    <div className="text-[11px] text-text-secondary">
                       {v.channel_title} • {Number(v.views).toLocaleString()} views
                     </div>
                   </div>

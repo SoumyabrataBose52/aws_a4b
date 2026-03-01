@@ -38,7 +38,7 @@ def get_llm_provider() -> BaseLLMProvider:
 
     if settings.LLM_PROVIDER == "gemini":
         from app.llm.gemini import GeminiProvider
-        return GeminiProvider(api_key=settings.GEMINI_API_KEY)
+        return GeminiProvider(api_key=settings.GEMINI_API_KEY, model_name="gemini-3-flash")
     else:
         from app.llm.mock import MockLLMProvider
         return MockLLMProvider()

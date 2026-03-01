@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { content, creators } from '@/lib/api';
+import { Sparkles, X, FileText, Wand2 } from 'lucide-react';
 
 export default function ContentPage() {
     const [list, setList] = useState<any[]>([]);
@@ -35,7 +36,6 @@ export default function ContentPage() {
                 platforms: genData.platforms.split(',').map(p => p.trim()),
             });
             setGenResult(result);
-            // Refresh list
             setList(await content.list());
         } catch (e: any) {
             setGenResult({ error: e.message });
@@ -45,21 +45,23 @@ export default function ContentPage() {
 
     return (
         <div className="animate-in">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+            <div className="flex justify-between items-center mb-7">
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 700 }}>Content</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>AI-generated content matched to creator voices</p>
+                    <h1 className="text-[28px] font-bold">Content</h1>
+                    <p className="text-text-secondary text-sm">AI-generated content matched to creator voices</p>
                 </div>
-                <button className="btn-glow" onClick={() => setShowGen(!showGen)}>
-                    {showGen ? '✕ Close' : '✨ Generate Content'}
+                <button className="btn-glow flex items-center gap-2" onClick={() => setShowGen(!showGen)}>
+                    {showGen ? <><X size={14} /> Close</> : <><Sparkles size={14} /> Generate Content</>}
                 </button>
             </div>
 
             {/* Generation Form */}
             {showGen && (
-                <div className="glass-card pulse-glow animate-in" style={{ padding: '24px', marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>✨ AI Content Generator</h3>
-                    <form onSubmit={handleGenerate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="glass-card pulse-glow animate-in p-6 mb-6">
+                    <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                        <Wand2 size={16} className="text-accent" /> AI Content Generator
+                    </h3>
+                    <form onSubmit={handleGenerate} className="grid grid-cols-2 gap-3">
                         <select className="input-dark" value={genData.creator_id}
                             onChange={e => setGenData(p => ({ ...p, creator_id: e.target.value }))}>
                             <option value="">Select Creator</option>
@@ -67,28 +69,28 @@ export default function ContentPage() {
                         </select>
                         <input className="input-dark" placeholder="Platforms (comma-separated)" value={genData.platforms}
                             onChange={e => setGenData(p => ({ ...p, platforms: e.target.value }))} />
-                        <input className="input-dark" placeholder="Topic (e.g., AI tools for creators)" value={genData.topic}
-                            onChange={e => setGenData(p => ({ ...p, topic: e.target.value }))} required style={{ gridColumn: '1 / -1' }} />
-                        <div style={{ gridColumn: '1 / -1' }}>
-                            <button className="btn-glow" type="submit" disabled={generating || !genData.creator_id}>
-                                {generating ? '🧠 Generating...' : '⚡ Generate'}
+                        <input className="input-dark col-span-2" placeholder="Topic (e.g., AI tools for creators)" value={genData.topic}
+                            onChange={e => setGenData(p => ({ ...p, topic: e.target.value }))} required />
+                        <div className="col-span-2">
+                            <button className="btn-glow flex items-center gap-2" type="submit" disabled={generating || !genData.creator_id}>
+                                {generating ? <><Wand2 size={14} className="animate-spin" /> Generating...</> : <><Sparkles size={14} /> Generate</>}
                             </button>
                         </div>
                     </form>
 
                     {genResult && (
-                        <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '12px' }}>
+                        <div className="mt-4 p-4 bg-bg-secondary rounded-xl">
                             {genResult.error ? (
-                                <p style={{ color: 'var(--danger)' }}>{genResult.error}</p>
+                                <p className="text-danger">{genResult.error}</p>
                             ) : (
                                 <>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <div className="flex justify-between mb-2">
                                         <span className="badge badge-success">Generated</span>
-                                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                        <span className="text-xs text-text-secondary">
                                             Style match: {((genResult.style_match_score || 0) * 100).toFixed(0)}%
                                         </span>
                                     </div>
-                                    <p style={{ fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{genResult.content?.text}</p>
+                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{genResult.content?.text}</p>
                                 </>
                             )}
                         </div>
@@ -98,26 +100,26 @@ export default function ContentPage() {
 
             {/* Content List */}
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner" /></div>
+                <div className="flex justify-center py-16"><div className="spinner" /></div>
             ) : list.length === 0 ? (
-                <div className="glass-card" style={{ textAlign: 'center', padding: '60px' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>✏️</div>
-                    <h3 style={{ fontWeight: 600, marginBottom: '8px' }}>No content yet</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Generate your first piece of AI content</p>
+                <div className="glass-card text-center py-16">
+                    <FileText size={48} className="mx-auto mb-3 opacity-40 text-text-secondary" />
+                    <h3 className="font-semibold mb-2">No content yet</h3>
+                    <p className="text-text-secondary text-sm">Generate your first piece of AI content</p>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="flex flex-col gap-3">
                     {list.map((c: any) => (
-                        <div key={c.id} className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', gap: '8px', marginBottom: '6px', alignItems: 'center' }}>
+                        <div key={c.id} className="glass-card p-4 flex items-start gap-3.5">
+                            <div className="flex-1">
+                                <div className="flex gap-2 mb-1.5 items-center">
                                     <span className={`badge ${c.status === 'published' ? 'badge-success' : c.status === 'scheduled' ? 'badge-warning' : 'badge-neutral'}`}>{c.status}</span>
                                     {c.platform && <span className="badge badge-accent">{c.platform}</span>}
                                 </div>
-                                <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-primary)' }}>
+                                <p className="text-sm leading-relaxed text-text-primary">
                                     {c.text?.slice(0, 200)}{c.text?.length > 200 ? '...' : ''}
                                 </p>
-                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                                <div className="text-xs text-text-secondary mt-1.5">
                                     Created: {new Date(c.created_at).toLocaleDateString()}
                                 </div>
                             </div>

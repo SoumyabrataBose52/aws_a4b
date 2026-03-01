@@ -1,19 +1,20 @@
 import json
 import asyncio
 import logging
-import google.generativeai as genai
 from typing import Optional
+from google import genai
+from google.genai import types
 from app.llm.base import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
 
 
 class GeminiProvider(BaseLLMProvider):
-    """Google Gemini API provider with retry logic for rate limits."""
+    """Google Gemini API provider using the new google-genai SDK."""
 
-    def __init__(self, api_key: str, model_name: str = "gemini-2.0-flash"):
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(model_name)
+    def __init__(self, api_key: str, model_name: str = "gemini-3-flash"):
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = model_name
         self.max_retries = 3
         self.base_delay = 15  # seconds — Gemini free tier has 15 RPM
 
@@ -42,15 +43,18 @@ class GeminiProvider(BaseLLMProvider):
         temperature: float = 0.7,
         max_tokens: int = 2000,
     ) -> str:
-        full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+        )
+        if system_prompt:
+            config.system_instruction = system_prompt
 
         response = await self._call_with_retry(
-            self.model.generate_content,
-            full_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=temperature,
-                max_output_tokens=max_tokens,
-            ),
+            self.client.models.generate_content,
+            model=self.model_name,
+            contents=prompt,
+            config=config,
         )
         return response.text
 
@@ -61,21 +65,26 @@ class GeminiProvider(BaseLLMProvider):
         temperature: float = 0.3,
         max_tokens: int = 2000,
     ) -> dict:
-        json_prompt = f"{prompt}\n\nRespond ONLY with valid JSON. No markdown, no explanation."
+        json_system = "You are a helpful assistant. Respond ONLY with valid JSON. No markdown code fences, no explanation."
         if system_prompt:
-            json_prompt = f"{system_prompt}\n\n{json_prompt}"
+            json_system = f"{system_prompt}\n\n{json_system}"
+
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            response_mime_type="application/json",
+            system_instruction=json_system,
+        )
 
         response = await self._call_with_retry(
-            self.model.generate_content,
-            json_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=temperature,
-                max_output_tokens=max_tokens,
-            ),
+            self.client.models.generate_content,
+            model=self.model_name,
+            contents=prompt,
+            config=config,
         )
 
         text = response.text.strip()
-        # Strip markdown code fences if present
+        # Strip markdown code fences if present (fallback safety)
         if text.startswith("```"):
             lines = text.split("\n")
             text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
