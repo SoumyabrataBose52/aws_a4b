@@ -15,6 +15,14 @@ class Creator(Base):
     status: Mapped[str] = mapped_column(String(20), default="active")  # active, inactive, onboarding
     platforms: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # list of platform names
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # YouTube-specific fields
+    youtube_channel_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    youtube_handle: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    subscribers: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_views: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    video_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

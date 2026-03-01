@@ -11,6 +11,11 @@ class CreatorCreate(BaseModel):
     bio: Optional[str] = None
     platforms: Optional[list[str]] = None
     avatar_url: Optional[str] = None
+    youtube_channel_id: Optional[str] = None
+    youtube_handle: Optional[str] = None
+    subscribers: Optional[int] = None
+    total_views: Optional[int] = None
+    video_count: Optional[int] = None
 
 
 class CreatorUpdate(BaseModel):
@@ -20,6 +25,11 @@ class CreatorUpdate(BaseModel):
     status: Optional[str] = None
     platforms: Optional[list[str]] = None
     avatar_url: Optional[str] = None
+    youtube_channel_id: Optional[str] = None
+    youtube_handle: Optional[str] = None
+    subscribers: Optional[int] = None
+    total_views: Optional[int] = None
+    video_count: Optional[int] = None
 
 
 class CreatorResponse(BaseModel):
@@ -30,6 +40,11 @@ class CreatorResponse(BaseModel):
     status: str
     platforms: Optional[list[str]] = None
     avatar_url: Optional[str] = None
+    youtube_channel_id: Optional[str] = None
+    youtube_handle: Optional[str] = None
+    subscribers: Optional[int] = None
+    total_views: Optional[int] = None
+    video_count: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

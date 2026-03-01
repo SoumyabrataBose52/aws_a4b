@@ -130,7 +130,12 @@ async def onboard_creator(
                     )
                     db.add(conn)
 
-                # Update creator avatar and bio from channel
+                # Update creator with ALL YouTube channel data
+                creator.youtube_channel_id = channel.get("channel_id")
+                creator.youtube_handle = channel.get("custom_url", "")
+                creator.subscribers = channel.get("subscribers", 0)
+                creator.total_views = channel.get("total_views", 0)
+                creator.video_count = channel.get("video_count", 0)
                 if not creator.avatar_url and channel.get("thumbnail"):
                     creator.avatar_url = channel["thumbnail"]
                 if not creator.bio and channel.get("description"):
@@ -227,3 +232,56 @@ def connect_platform(creator_id: str, data: PlatformConnectRequest, db: Session 
 @router.get("/{creator_id}/platforms", response_model=list[PlatformConnectionResponse])
 def list_platforms(creator_id: str, db: Session = Depends(get_db)):
     return db.query(PlatformConnection).filter(PlatformConnection.creator_id == creator_id).all()
+
+
+@router.post("/{creator_id}/sync-youtube", response_model=CreatorResponse)
+def sync_youtube(
+    creator_id: str,
+    youtube_channel: str | None = Query(None, description="YouTube @handle or channel ID. If omitted, uses stored youtube_channel_id"),
+    db: Session = Depends(get_db),
+):
+    """Refresh a creator's YouTube stats (subscribers, views, video count) from live API data."""
+    creator = db.query(Creator).filter(Creator.id == creator_id).first()
+    if not creator:
+        raise HTTPException(status_code=404, detail="Creator not found")
+
+    # Determine which channel to look up
+    channel_ref = youtube_channel or creator.youtube_channel_id
+    if not channel_ref:
+        raise HTTPException(status_code=400, detail="No YouTube channel associated. Provide youtube_channel parameter.")
+
+    try:
+        from app.services.youtube_service import YouTubeService
+        yt = YouTubeService()
+
+        if channel_ref.startswith("UC"):
+            channel = yt.get_channel_by_id(channel_ref)
+        else:
+            channel = yt.get_channel_by_username(channel_ref)
+
+        if not channel:
+            raise HTTPException(status_code=404, detail=f"YouTube channel '{channel_ref}' not found")
+
+        # Update all YouTube fields
+        creator.youtube_channel_id = channel["channel_id"]
+        creator.youtube_handle = channel.get("custom_url", "")
+        creator.subscribers = channel.get("subscribers", 0)
+        creator.total_views = channel.get("total_views", 0)
+        creator.video_count = channel.get("video_count", 0)
+
+        if channel.get("thumbnail"):
+            creator.avatar_url = channel["thumbnail"]
+        if channel.get("description") and not creator.bio:
+            creator.bio = channel["description"][:500]
+        if "youtube" not in (creator.platforms or []):
+            creator.platforms = (creator.platforms or []) + ["youtube"]
+
+        db.commit()
+        db.refresh(creator)
+        return creator
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"YouTube sync failed: {str(e)}")
+

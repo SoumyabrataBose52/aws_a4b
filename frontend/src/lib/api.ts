@@ -28,6 +28,8 @@ export const creators = {
   onboard: (id: string, youtubeChannel?: string) =>
     apiFetch(`/api/v1/creators/${id}/onboard${youtubeChannel ? `?youtube_channel=${youtubeChannel}` : ''}`, { method: 'POST' }),
   getDna: (id: string) => apiFetch(`/api/v1/creators/${id}/dna`),
+  syncYoutube: (id: string, youtubeChannel?: string) =>
+    apiFetch(`/api/v1/creators/${id}/sync-youtube${youtubeChannel ? `?youtube_channel=${youtubeChannel}` : ''}`, { method: 'POST' }),
 };
 
 // ---- Content ----

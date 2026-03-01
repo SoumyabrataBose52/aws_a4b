@@ -119,6 +119,8 @@ class YouTubeService:
                         "published_at": item["snippet"]["publishedAt"],
                         "tags": item["snippet"].get("tags", []),
                         "category_id": item["snippet"].get("categoryId", ""),
+                        "channel_title": item["snippet"].get("channelTitle", ""),
+                        "thumbnail": item["snippet"].get("thumbnails", {}).get("high", {}).get("url", ""),
                         "duration": item["contentDetails"].get("duration", ""),
                         "views": int(stats.get("viewCount", 0)),
                         "likes": int(stats.get("likeCount", 0)),
