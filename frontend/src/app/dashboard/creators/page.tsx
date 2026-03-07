@@ -19,6 +19,7 @@ import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AddCreatorDialog } from "@/components/ui/add-creator-dialog";
 
 export default function CreatorsPage() {
     const [list, setList] = useState<any[]>([]);
@@ -26,8 +27,13 @@ export default function CreatorsPage() {
     const [view, setView] = useState<"grid" | "list">("grid");
     const [search, setSearch] = useState("");
 
-    useEffect(() => {
+    const refreshList = () => {
+        setLoading(true);
         creators.list().then(setList).catch(() => { }).finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        refreshList();
     }, []);
 
     const filtered = list.filter((c) =>
@@ -69,9 +75,11 @@ export default function CreatorsPage() {
                             <TabsTrigger value="list" className="text-xs px-3">List</TabsTrigger>
                         </TabsList>
                     </Tabs>
-                    <Button size="sm" className="bg-accent-brand hover:bg-accent-brand/90 text-white h-9 gap-1.5">
-                        <Plus size={14} /> Add Creator
-                    </Button>
+                    <AddCreatorDialog onSuccess={refreshList} trigger={
+                        <Button id="add-creator-btn" size="sm" className="bg-accent-brand hover:bg-accent-brand/90 text-white h-9 gap-1.5">
+                            <Plus size={14} /> Add Creator
+                        </Button>
+                    } />
                 </div>
             </div>
 
@@ -83,6 +91,7 @@ export default function CreatorsPage() {
                         title="No creators found"
                         description={search ? "No creators match your search. Try a different query." : "Add your first creator to initialize the workspace."}
                         actionLabel={search ? undefined : "Add Creator"}
+                        onAction={search ? undefined : () => document.getElementById('add-creator-btn')?.click()}
                     />
                 </Card>
             ) : view === "grid" ? (
