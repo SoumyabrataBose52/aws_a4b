@@ -93,9 +93,17 @@ export default function CreatorsPage() {
                             <CardContent className="p-5">
                                 <div className="flex items-start justify-between mb-4">
                                     <Link href={`/dashboard/creators/${c.id}`} className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-lg shadow-accent-brand/20">
-                                            {c.name?.charAt(0)?.toUpperCase()}
-                                        </div>
+                                        {c.avatar_url ? (
+                                            <img
+                                                src={c.avatar_url}
+                                                alt={c.name}
+                                                className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-accent-brand/30 shadow-lg shadow-accent-brand/10"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-lg shadow-accent-brand/20">
+                                                {c.name?.charAt(0)?.toUpperCase()}
+                                            </div>
+                                        )}
                                         <div>
                                             <h3 className="font-semibold text-sm group-hover:text-accent-brand transition-colors">{c.name}</h3>
                                             <p className="text-xs text-muted-foreground mt-0.5">
@@ -158,9 +166,17 @@ export default function CreatorsPage() {
                                 <TableRow key={c.id} className="group border-border hover:bg-accent/30">
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-xs font-bold text-white">
-                                                {c.name?.charAt(0)?.toUpperCase()}
-                                            </div>
+                                            {c.avatar_url ? (
+                                                <img
+                                                    src={c.avatar_url}
+                                                    alt={c.name}
+                                                    className="w-8 h-8 rounded-full object-cover border border-accent-brand/30"
+                                                />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-xs font-bold text-white">
+                                                    {c.name?.charAt(0)?.toUpperCase()}
+                                                </div>
+                                            )}
                                             <span className="font-medium text-sm">{c.name}</span>
                                         </div>
                                     </TableCell>

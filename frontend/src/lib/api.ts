@@ -96,6 +96,7 @@ export const youtube = {
   channel: (id: string) => apiFetch(`/api/v1/youtube/channel/${id}`),
   channelVideos: (channelId: string) => apiFetch(`/api/v1/youtube/channel/${channelId}/videos`),
   search: (q: string) => apiFetch(`/api/v1/youtube/search?q=${encodeURIComponent(q)}`),
+  videoComments: (videoId: string, maxResults = 50) => apiFetch(`/api/v1/youtube/video/${videoId}/comments?max_results=${maxResults}`),
 };
 
 // ---- System ----

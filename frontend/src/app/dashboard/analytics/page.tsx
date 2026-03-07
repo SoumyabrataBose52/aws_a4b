@@ -77,13 +77,21 @@ export default function AnalyticsPage() {
                                 key={c.id}
                                 onClick={() => handleCreatorChange(c.id)}
                                 className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${selectedCreator === c.id
-                                        ? "bg-card text-foreground shadow-sm"
-                                        : "text-muted-foreground hover:text-foreground"
+                                    ? "bg-card text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
                                     }`}
                             >
-                                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-[8px] font-bold text-white">
-                                    {c.name?.charAt(0)?.toUpperCase()}
-                                </div>
+                                {c.avatar_url ? (
+                                    <img
+                                        src={c.avatar_url}
+                                        alt={c.name}
+                                        className="w-5 h-5 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-accent-brand to-accent-violet flex items-center justify-center text-[8px] font-bold text-white">
+                                        {c.name?.charAt(0)?.toUpperCase()}
+                                    </div>
+                                )}
                                 {c.name}
                             </button>
                         ))}
