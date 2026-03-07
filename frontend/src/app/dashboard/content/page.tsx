@@ -194,29 +194,36 @@ export default function ContentPage() {
                                 </div>
                             ) : (
                                 <div className="p-6 space-y-6 animate-fade-up">
-                                    {Object.entries(genResult)
-                                        .filter(([k]) => k !== "topic" && k !== "creator_id")
-                                        .map(([platform, text]: [string, any]) => (
-                                            <div key={platform} className="space-y-3">
-                                                <div className="flex justify-between items-center">
-                                                    <Badge variant="outline" className="text-xs uppercase tracking-wider text-accent-brand border-accent-brand/30">
-                                                        {platform}
-                                                    </Badge>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-7 text-xs text-muted-foreground gap-1.5"
-                                                        onClick={() => handleCopy(text as string, platform)}
-                                                    >
-                                                        {copiedPlatform === platform ? <Check size={12} className="text-success" /> : <Copy size={12} />}
-                                                        {copiedPlatform === platform ? "Copied!" : "Copy"}
-                                                    </Button>
+                                    {genResult.content && (
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap justify-between items-center gap-3">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {genResult.content.platforms?.map((platform: string) => (
+                                                        <Badge key={platform} variant="outline" className="text-xs uppercase tracking-wider text-accent-brand border-accent-brand/30">
+                                                            {platform}
+                                                        </Badge>
+                                                    ))}
+                                                    {genResult.style_match_score && (
+                                                        <Badge variant="secondary" className="text-xs">
+                                                            Score: {(genResult.style_match_score * 100).toFixed(0)}%
+                                                        </Badge>
+                                                    )}
                                                 </div>
-                                                <div className="p-4 rounded-lg bg-secondary/30 border border-border/50 text-sm leading-relaxed whitespace-pre-wrap font-mono">
-                                                    {text}
-                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-xs text-muted-foreground gap-1.5"
+                                                    onClick={() => handleCopy(genResult.content.text, "all")}
+                                                >
+                                                    {copiedPlatform === "all" ? <Check size={12} className="text-success" /> : <Copy size={12} />}
+                                                    {copiedPlatform === "all" ? "Copied!" : "Copy"}
+                                                </Button>
                                             </div>
-                                        ))}
+                                            <div className="p-4 rounded-lg bg-secondary/30 border border-border/50 text-sm leading-relaxed whitespace-pre-wrap font-mono">
+                                                {genResult.content.text}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )
                         ) : (

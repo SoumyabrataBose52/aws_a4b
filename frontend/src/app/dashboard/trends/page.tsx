@@ -24,6 +24,7 @@ interface VideoModalData {
 
 export default function TrendsPage() {
     const [trending, setTrending] = useState<any[]>([]);
+    const [keywordsData, setKeywordsData] = useState<any>(null);
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
@@ -31,10 +32,14 @@ export default function TrendsPage() {
     const [activeVideo, setActiveVideo] = useState<VideoModalData | null>(null);
 
     useEffect(() => {
-        youtube.trending("IN", 20)
-            .then((t) => setTrending(t.videos || []))
-            .catch(() => { })
-            .finally(() => setLoading(false));
+        Promise.all([
+            youtube.trending("IN", 20).catch(() => ({ videos: [] })),
+            youtube.trendingKeywords("IN", 30).catch(() => null)
+        ]).then(([t, kw]) => {
+            setTrending(t.videos || []);
+            setKeywordsData(kw);
+            setLoading(false);
+        });
     }, []);
 
     // Close modal on Escape
@@ -147,6 +152,36 @@ export default function TrendsPage() {
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-2">{r.channel_title}</p>
                                 </CardContent>
+                            </Card>
+                        ))}
+                    </ResponsiveGrid>
+                </div>
+            )}
+
+            {/* Emerging Topics & Keywords */}
+            {keywordsData && keywordsData.topics && keywordsData.topics.length > 0 && (
+                <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Flame size={16} className="text-accent-brand" />
+                        <h2 className="text-sm font-semibold">Emerging Topics</h2>
+                        <Badge variant="secondary" className="text-[10px] ml-1">AI Extracted</Badge>
+                    </div>
+                    <ResponsiveGrid autoFill minItemWidth={300} gap={16} className="stagger-children">
+                        {keywordsData.topics.slice(0, 6).map((topic: any, i: number) => (
+                            <Card key={i} className="bg-card border-border p-4 hover:border-accent-brand/50 transition-colors">
+                                <h3 className="text-sm font-semibold capitalize mb-3 text-white flex justify-between items-center">
+                                    {topic.topic}
+                                    <span className="text-[10px] bg-accent-brand/20 text-accent-brand px-2 py-0.5 rounded-full font-bold">
+                                        Score: {topic.weight}
+                                    </span>
+                                </h3>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {topic.keywords.map((kw: string, j: number) => (
+                                        <Badge key={j} variant="secondary" className="text-[10px] bg-secondary/50 text-muted-foreground hover:text-white transition-colors">
+                                            {kw}
+                                        </Badge>
+                                    ))}
+                                </div>
                             </Card>
                         ))}
                     </ResponsiveGrid>

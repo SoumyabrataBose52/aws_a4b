@@ -26,8 +26,12 @@ def oauth_callback(code: str, state: str = "nexus", ig: InstagramService = Depen
     """Handle OAuth callback — exchange code for long-lived token."""
     result = ig.exchange_code_for_token(code)
     if "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
-    return result
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"http://localhost:3000/dashboard/analytics/instagram?error={result['error']}")
+    
+    token = result.get("access_token")
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=f"http://localhost:3000/dashboard/analytics/instagram?token={token}")
 
 
 # ─── Account Discovery ────────────────────────────────────────────────────
