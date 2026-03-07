@@ -107,6 +107,36 @@ export const youtube = {
   channelVideos: (channelId: string) => apiFetch(`/api/v1/youtube/channel/${channelId}/videos`),
   search: (q: string) => apiFetch(`/api/v1/youtube/search?q=${encodeURIComponent(q)}`),
   videoComments: (videoId: string, maxResults = 50) => apiFetch(`/api/v1/youtube/video/${videoId}/comments?max_results=${maxResults}`),
+  trendingKeywords: (region = 'IN', maxVideos = 30) => apiFetch(`/api/v1/youtube/trending/keywords?region=${region}&max_videos=${maxVideos}`),
+};
+
+// ---- Instagram ----
+export const instagram = {
+  getAuthUrl: (state = 'nexus') => apiFetch(`/api/v1/instagram/auth?state=${state}`),
+  callback: (code: string) => apiFetch(`/api/v1/instagram/callback?code=${code}`),
+  accounts: (accessToken: string) => apiFetch(`/api/v1/instagram/accounts?access_token=${accessToken}`),
+  profile: (userId: string, accessToken: string) => apiFetch(`/api/v1/instagram/${userId}/profile?access_token=${accessToken}`),
+  media: (userId: string, accessToken: string, limit = 25) => apiFetch(`/api/v1/instagram/${userId}/media?access_token=${accessToken}&limit=${limit}`),
+  insights: (userId: string, accessToken: string, days = 7) => apiFetch(`/api/v1/instagram/${userId}/insights?access_token=${accessToken}&days=${days}`),
+  mediaComments: (mediaId: string, accessToken: string) => apiFetch(`/api/v1/instagram/media/${mediaId}/comments?access_token=${accessToken}`),
+};
+
+// ---- Data Pipeline ----
+export const pipeline = {
+  analyze: (data: { youtube_channel_id?: string; instagram_user_id?: string; instagram_token?: string; max_items?: number }) =>
+    apiFetch('/api/v1/pipeline/analyze', { method: 'POST', body: JSON.stringify(data) }),
+  autoAnalyze: (config: any) =>
+    apiFetch('/api/v1/pipeline/auto-analyze', { method: 'POST', body: JSON.stringify(config) }),
+};
+
+// ---- Voice Studio ----
+export const voice = {
+  profiles: () => apiFetch('/api/v1/voice/profiles'),
+  generate: (data: { text: string; profile?: string; speed?: number; pitch_shift?: number }) =>
+    apiFetch('/api/v1/voice/generate', { method: 'POST', body: JSON.stringify(data) }),
+  preview: (data: { text: string; profile?: string }) =>
+    apiFetch('/api/v1/voice/preview', { method: 'POST', body: JSON.stringify(data) }),
+  downloadUrl: (filename: string) => `${API_BASE}/api/v1/voice/download/${filename}`,
 };
 
 // ---- System ----

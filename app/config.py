@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     # Platform APIs
     YOUTUBE_API_KEY: str = ""
+    INSTAGRAM_APP_ID: str = ""
+    INSTAGRAM_APP_SECRET: str = ""
+    INSTAGRAM_APP_NAME: str = ""
 
     # Security
     API_KEY_SECRET: str = "nexus-dev-secret"

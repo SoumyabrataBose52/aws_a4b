@@ -56,3 +56,14 @@ def search_videos(q: str, max_results: int = Query(10, ge=1, le=25), yt: YouTube
     """Search YouTube for videos on a topic."""
     results = yt.search_videos(q, max_results)
     return {"query": q, "count": len(results), "results": results}
+
+
+@router.get("/trending/keywords")
+async def get_trending_keywords(
+    region: str = Query("IN", description="Region code (e.g., IN, US, GB)"),
+    max_videos: int = Query(30, ge=5, le=50),
+):
+    """Extract trending keywords from YouTube trending videos with AI-powered topic clustering."""
+    from app.services.keyword_extractor import get_trending_keywords as extract
+    result = await extract(region=region, max_videos=max_videos)
+    return result

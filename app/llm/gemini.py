@@ -12,28 +12,26 @@ logger = logging.getLogger(__name__)
 class GeminiProvider(BaseLLMProvider):
     """Google Gemini API provider using the new google-genai SDK."""
 
-    def __init__(self, api_key: str, model_name: str = "gemini-3-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-3-flash-preview"):
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
         self.max_retries = 3
         self.base_delay = 15  # seconds — Gemini free tier has 15 RPM
 
     async def _call_with_retry(self, func, *args, **kwargs):
-        """Call a function with exponential backoff retry on rate limit errors."""
+        """Call a function with exponential backoff retry on rate limit errors only."""
         for attempt in range(self.max_retries + 1):
             try:
                 return func(*args, **kwargs)
             except Exception as e:
                 error_str = str(e).lower()
-                if "429" in error_str or "quota" in error_str or "rate" in error_str or "resource_exhausted" in error_str:
-                    if attempt < self.max_retries:
-                        delay = self.base_delay * (2 ** attempt)
-                        logger.warning(f"Gemini rate limit hit, retrying in {delay}s (attempt {attempt + 1}/{self.max_retries})")
-                        await asyncio.sleep(delay)
-                    else:
-                        logger.error(f"Gemini rate limit exceeded after {self.max_retries} retries")
-                        raise
+                is_rate_limit = any(tok in error_str for tok in ["429", "quota", "rate_limit", "resource_exhausted", "too many requests"])
+                if is_rate_limit and attempt < self.max_retries:
+                    delay = self.base_delay * (2 ** attempt)
+                    logger.warning(f"Gemini rate limit hit, retrying in {delay}s (attempt {attempt + 1}/{self.max_retries})")
+                    await asyncio.sleep(delay)
                 else:
+                    logger.error(f"Gemini API error (attempt {attempt + 1}): {type(e).__name__}: {e}")
                     raise
 
     async def generate_text(

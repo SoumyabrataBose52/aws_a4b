@@ -8,9 +8,10 @@ Comment Analyzer Service — Orchestrates the full analysis pipeline.
 5. Returns a comprehensive analysis result
 """
 
+import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import parser as dt_parser
 from sqlalchemy.orm import Session
 
@@ -49,6 +50,9 @@ async def analyze_video_comments(
     # 3. Merge results with comment metadata
     analyzed_comments = []
     for comment, sentiment in zip(raw_comments, sentiment_results):
+        # Derive a star_rating from the continuous score for display
+        # Maps -1.0..+1.0 to 1..5
+        star_rating = max(1, min(5, round((sentiment.score + 1) * 2.5)))
         analyzed_comments.append({
             "comment_id": comment.get("comment_id", ""),
             "author": comment.get("author", "Unknown"),
@@ -58,7 +62,7 @@ async def analyze_video_comments(
             "sentiment_score": sentiment.score,
             "sentiment_label": sentiment.label,
             "confidence": sentiment.confidence,
-            "star_rating": sentiment.star_rating,
+            "star_rating": star_rating,
         })
 
     # 4. Compute aggregate stats
@@ -160,9 +164,12 @@ def _build_time_intervals(comments: list[dict], interval_seconds: int) -> list[d
     total_seconds = max((max_ts - min_ts).total_seconds(), 1)
     num_intervals = max(int(total_seconds / interval_seconds), 1)
 
-    intervals = []
-    from datetime import timedelta
+    # Cap at 50 intervals from the start to avoid recursion issues
+    if num_intervals > 50:
+        interval_seconds = max(int(total_seconds / 50), 60)
+        num_intervals = min(int(total_seconds / interval_seconds), 50)
 
+    intervals = []
     for i in range(num_intervals):
         start = min_ts + timedelta(seconds=i * interval_seconds)
         end = min_ts + timedelta(seconds=(i + 1) * interval_seconds)
@@ -192,12 +199,6 @@ def _build_time_intervals(comments: list[dict], interval_seconds: int) -> list[d
             "max_score": max(scores),
         })
 
-    # Cap at 50 intervals max to avoid massive payloads
-    if len(intervals) > 50:
-        # Re-bucket with larger intervals
-        new_interval = int(total_seconds / 50)
-        return _build_time_intervals(comments, max(new_interval, 60))
-
     return intervals
 
 
@@ -208,75 +209,105 @@ async def _gemini_analyze(
 ) -> tuple[dict, list[dict], str]:
     """
     Use Gemini to extract keywords, generate alerts, and summarize the sentiment trajectory.
+    Includes robust fallback: if generate_json fails, tries generate_text with manual JSON parsing.
     """
     llm = get_llm_provider()
 
-    # Prepare a condensed version for Gemini (to stay within token limits)
-    sample_comments = comments[:50]  # Send top 50 comments
-    comment_texts = "\n".join([
-        f"[{c['sentiment_label']}|{c['sentiment_score']:.1f}] {c['text'][:150]}"
-        for c in sample_comments
-    ])
+    # Prepare a CONDENSED version for Gemini (stay within token limits)
+    sample_size = min(30, len(comments))
+    sample_comments = sorted(comments, key=lambda c: abs(c["sentiment_score"]), reverse=True)[:sample_size]
+    comment_lines = []
+    for c in sample_comments:
+        score_str = f"{c['sentiment_score']:+.2f}"
+        comment_lines.append(f"[{c['sentiment_label']}|{score_str}] {c['text'][:100]}")
+    comment_text_block = "\n".join(comment_lines)
 
-    # Build interval summary
-    interval_summary = "\n".join([
-        f"Interval {iv['interval_index']}: {iv['comment_count']} comments, avg={iv['avg_score']:.2f}"
-        for iv in time_intervals[:20]
-    ])
+    # Build interval summary — compact
+    iv_lines = []
+    for iv in time_intervals[:15]:
+        if iv["comment_count"] > 0:
+            iv_lines.append(f"Interval {iv['interval_index']+1}: {iv['comment_count']} comments, avg={iv['avg_score']:.2f}")
+    interval_block = "\n".join(iv_lines) if iv_lines else "No time intervals available."
 
-    system_prompt = """You are a crisis management AI analyzing YouTube comment sentiment data.
-You have been given comments already scored by a sentiment model. Your job is to:
-1. Extract crisis keywords (negative trending terms that indicate a PR risk)
-2. Extract positive keywords (terms indicating good reception)
-3. Extract trending keywords (most mentioned topics regardless of sentiment)
-4. Generate alerts if the sentiment data indicates risks
-5. Write a brief summary narrative of the comment sentiment trajectory
+    prompt = f"""Analyze this YouTube comment sentiment data and extract insights.
 
-Be specific and actionable. Focus on real keywords from the comments, not generic terms."""
+SENTIMENT SUMMARY:
+- Total: {len(comments)} comments | Average score: {aggregate.avg_score:.2f}
+- Distribution: positive={aggregate.distribution.get('positive',0)+aggregate.distribution.get('very_positive',0):.0f}%, neutral={aggregate.distribution.get('neutral',0):.0f}%, negative={aggregate.distribution.get('negative',0)+aggregate.distribution.get('very_negative',0):.0f}%
+- Anomaly: {aggregate.anomaly_detected}
 
-    prompt = f"""Comment Sentiment Data:
-- Total comments: {len(comments)}
-- Average sentiment: {aggregate.avg_score:.2f}
-- Distribution: {aggregate.distribution}
-- Anomaly detected: {aggregate.anomaly_detected}
+TIME TRENDS:
+{interval_block}
 
-Time Intervals:
-{interval_summary}
+REPRESENTATIVE COMMENTS (sorted by score intensity):
+{comment_text_block}
 
-Sample Analyzed Comments:
-{comment_texts}
-
-Respond as JSON:
+Return a JSON object with this exact structure:
 {{
   "keywords": {{
-    "crisis": ["keyword1", "keyword2"],
-    "positive": ["keyword1", "keyword2"],
-    "trending": ["keyword1", "keyword2"]
+    "crisis": ["terms indicating PR risk or negativity from the actual comments"],
+    "positive": ["terms indicating good reception from the actual comments"],
+    "trending": ["most discussed topics regardless of sentiment"]
   }},
   "alerts": [
     {{
-      "severity": "info|warning|critical",
-      "message": "Description of the alert",
+      "severity": "info or warning or critical",
+      "message": "actionable description of the alert",
       "keyword": "related keyword"
     }}
   ],
-  "summary": "A 2-3 sentence narrative summary of the overall comment sentiment and trends."
+  "summary": "A 2-3 sentence narrative about the comment sentiment, key themes, and any risks detected."
 }}"""
 
+    system_prompt = """You are a social media crisis analyst AI. Analyze YouTube comment sentiment data and extract:
+1. Real keywords from the actual comment text (not generic terms)
+2. Actionable alerts based on sentiment patterns
+3. A concise narrative summary
+
+Be specific. Use actual words from the comments. If sentiment is mostly positive, say so. If there are risks, explain them clearly."""
+
+    # Attempt 1: generate_json (structured output)
     try:
-        result = await llm.generate_json(prompt, system_prompt=system_prompt, temperature=0.3)
+        logger.info("Calling Gemini generate_json for comment analysis...")
+        result = await llm.generate_json(prompt, system_prompt=system_prompt, temperature=0.3, max_tokens=1500)
+        logger.info(f"Gemini generate_json succeeded. Keys: {list(result.keys())}")
         keywords = result.get("keywords", {"crisis": [], "positive": [], "trending": []})
         alerts = result.get("alerts", [])
         summary = result.get("summary", "Analysis complete.")
         return keywords, alerts, summary
     except Exception as e:
-        logger.error(f"Gemini analysis failed: {e}")
-        # Fallback: generate basic keywords from comment texts
-        return (
-            {"crisis": [], "positive": [], "trending": []},
-            [{"severity": "info", "message": "AI keyword analysis unavailable — using plain sentiment scores.", "keyword": "fallback"}],
-            f"Analyzed {len(comments)} comments with average sentiment {aggregate.avg_score:.2f}. AI summary unavailable.",
+        logger.warning(f"Gemini generate_json failed: {type(e).__name__}: {e}")
+
+    # Attempt 2: generate_text and parse JSON manually
+    try:
+        logger.info("Falling back to Gemini generate_text for comment analysis...")
+        raw_text = await llm.generate_text(
+            prompt + "\n\nIMPORTANT: Respond ONLY with valid JSON, no markdown fences.",
+            system_prompt=system_prompt,
+            temperature=0.3,
+            max_tokens=1500,
         )
+        logger.info(f"Gemini generate_text response length: {len(raw_text)}")
+        # Clean markdown fences
+        text = raw_text.strip()
+        if text.startswith("```"):
+            lines = text.split("\n")
+            text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        result = json.loads(text)
+        keywords = result.get("keywords", {"crisis": [], "positive": [], "trending": []})
+        alerts = result.get("alerts", [])
+        summary = result.get("summary", "Analysis complete.")
+        return keywords, alerts, summary
+    except Exception as e:
+        logger.error(f"Gemini generate_text fallback also failed: {type(e).__name__}: {e}")
+
+    # Final fallback: no Gemini available
+    logger.error("All Gemini attempts failed. Returning fallback analysis.")
+    return (
+        {"crisis": [], "positive": [], "trending": []},
+        [{"severity": "info", "message": "AI keyword analysis unavailable — using plain sentiment scores.", "keyword": "fallback"}],
+        f"Analyzed {len(comments)} comments with average sentiment {aggregate.avg_score:+.2f}. AI summary could not be generated.",
+    )
 
 
 def _empty_result(video_id: str, creator_id: str | None) -> dict:
