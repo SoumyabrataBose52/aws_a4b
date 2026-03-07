@@ -59,6 +59,16 @@ export const crisis = {
     apiFetch(`/api/v1/crisis/${crisisId}/simulate`, { method: 'POST', body: JSON.stringify({ strategy_id: strategyId }) }),
   execute: (crisisId: string, strategyId: string) =>
     apiFetch(`/api/v1/crisis/${crisisId}/execute`, { method: 'POST', body: JSON.stringify({ strategy_id: strategyId }) }),
+  analyzeComments: (data: { video_id: string; creator_id?: string; interval_seconds?: number; max_comments?: number }) =>
+    apiFetch('/api/v1/crisis/analyze-comments', { method: 'POST', body: JSON.stringify(data) }),
+  listAnalyses: (videoId?: string, creatorId?: string) => {
+    const params = new URLSearchParams();
+    if (videoId) params.set('video_id', videoId);
+    if (creatorId) params.set('creator_id', creatorId);
+    const qs = params.toString();
+    return apiFetch(`/api/v1/crisis/analyses${qs ? `?${qs}` : ''}`);
+  },
+  getAnalysis: (id: string) => apiFetch(`/api/v1/crisis/analyses/${id}`),
 };
 
 // ---- Sentiment ----

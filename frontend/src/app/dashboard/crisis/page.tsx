@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { crisis, creators } from "@/lib/api";
-import { Shield, AlertTriangle, Zap, Brain, Plus, X } from "lucide-react";
+import { Shield, AlertTriangle, Zap, Brain, Plus, X, MessageSquareWarning } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import Link from "next/link";
 
 export default function CrisisPage() {
     const [list, setList] = useState<any[]>([]);
@@ -99,68 +100,75 @@ export default function CrisisPage() {
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">Real-time sentiment monitoring and PR risk management.</p>
                 </div>
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button size="sm" className="bg-danger hover:bg-danger/90 text-white h-9 gap-1.5">
-                            <AlertTriangle size={14} /> Report Crisis
+                <div className="flex items-center gap-2">
+                    <Link href="/dashboard/crisis/comments">
+                        <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs border-accent-brand/30 text-accent-brand hover:bg-accent-brand/10">
+                            <MessageSquareWarning size={14} /> Comment Analysis
                         </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-card border-border">
-                        <DialogHeader>
-                            <DialogTitle className="text-base flex items-center gap-2">
-                                <AlertTriangle size={16} className="text-danger" /> Report New Crisis
-                            </DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleCreate} className="space-y-4 mt-2">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-medium text-muted-foreground">Creator</label>
-                                    <Select value={formData.creator_id} onValueChange={(v) => setFormData({ ...formData, creator_id: v })}>
-                                        <SelectTrigger className="bg-secondary/50 border-border h-9"><SelectValue /></SelectTrigger>
-                                        <SelectContent className="bg-popover border-border">
-                                            {creatorList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                    </Link>
+                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button size="sm" className="bg-danger hover:bg-danger/90 text-white h-9 gap-1.5">
+                                <AlertTriangle size={14} /> Report Crisis
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-card border-border">
+                            <DialogHeader>
+                                <DialogTitle className="text-base flex items-center gap-2">
+                                    <AlertTriangle size={16} className="text-danger" /> Report New Crisis
+                                </DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleCreate} className="space-y-4 mt-2">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-muted-foreground">Creator</label>
+                                        <Select value={formData.creator_id} onValueChange={(v) => setFormData({ ...formData, creator_id: v })}>
+                                            <SelectTrigger className="bg-secondary/50 border-border h-9"><SelectValue /></SelectTrigger>
+                                            <SelectContent className="bg-popover border-border">
+                                                {creatorList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-muted-foreground">Threat Level</label>
+                                        <Select value={formData.threat_level} onValueChange={(v) => setFormData({ ...formData, threat_level: v })}>
+                                            <SelectTrigger className="bg-secondary/50 border-border h-9"><SelectValue /></SelectTrigger>
+                                            <SelectContent className="bg-popover border-border">
+                                                <SelectItem value="low">Low</SelectItem>
+                                                <SelectItem value="medium">Medium</SelectItem>
+                                                <SelectItem value="high">High</SelectItem>
+                                                <SelectItem value="critical">Critical</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-muted-foreground">Affected Platforms</label>
+                                        <Input className="bg-secondary/50 border-border h-9 text-sm" value={formData.affected_platforms}
+                                            onChange={(e) => setFormData({ ...formData, affected_platforms: e.target.value })} />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-muted-foreground">Sentiment Drop (0-1)</label>
+                                        <Input type="number" step="0.1" min="0" max="1" className="bg-secondary/50 border-border h-9 text-sm"
+                                            value={formData.sentiment_drop} onChange={(e) => setFormData({ ...formData, sentiment_drop: parseFloat(e.target.value) })} />
+                                    </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-medium text-muted-foreground">Threat Level</label>
-                                    <Select value={formData.threat_level} onValueChange={(v) => setFormData({ ...formData, threat_level: v })}>
-                                        <SelectTrigger className="bg-secondary/50 border-border h-9"><SelectValue /></SelectTrigger>
-                                        <SelectContent className="bg-popover border-border">
-                                            <SelectItem value="low">Low</SelectItem>
-                                            <SelectItem value="medium">Medium</SelectItem>
-                                            <SelectItem value="high">High</SelectItem>
-                                            <SelectItem value="critical">Critical</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <label className="text-xs font-medium text-muted-foreground">Triggering Messages</label>
+                                    <textarea className="w-full h-20 bg-secondary/50 border border-border rounded-md p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-danger/50 resize-none"
+                                        placeholder="One per line..." value={formData.triggering_messages} onChange={(e) => setFormData({ ...formData, triggering_messages: e.target.value })} />
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-medium text-muted-foreground">Affected Platforms</label>
-                                    <Input className="bg-secondary/50 border-border h-9 text-sm" value={formData.affected_platforms}
-                                        onChange={(e) => setFormData({ ...formData, affected_platforms: e.target.value })} />
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+                                    <Button type="submit" size="sm" disabled={submitting} className="bg-danger hover:bg-danger/90 text-white">
+                                        {submitting ? "Reporting..." : "Report Crisis"}
+                                    </Button>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-medium text-muted-foreground">Sentiment Drop (0-1)</label>
-                                    <Input type="number" step="0.1" min="0" max="1" className="bg-secondary/50 border-border h-9 text-sm"
-                                        value={formData.sentiment_drop} onChange={(e) => setFormData({ ...formData, sentiment_drop: parseFloat(e.target.value) })} />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-muted-foreground">Triggering Messages</label>
-                                <textarea className="w-full h-20 bg-secondary/50 border border-border rounded-md p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-danger/50 resize-none"
-                                    placeholder="One per line..." value={formData.triggering_messages} onChange={(e) => setFormData({ ...formData, triggering_messages: e.target.value })} />
-                            </div>
-                            <div className="flex justify-end gap-2 pt-2">
-                                <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
-                                <Button type="submit" size="sm" disabled={submitting} className="bg-danger hover:bg-danger/90 text-white">
-                                    {submitting ? "Reporting..." : "Report Crisis"}
-                                </Button>
-                            </div>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
             {/* Active Alert Banner */}

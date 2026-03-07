@@ -45,4 +45,20 @@ class ResponseStrategy(Base):
     crisis: Mapped["CrisisEvent"] = relationship("CrisisEvent", back_populates="strategies")
 
 
+class CommentAnalysis(Base):
+    __tablename__ = "comment_analyses"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    video_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    creator_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("creators.id", ondelete="SET NULL"), nullable=True)
+    total_comments: Mapped[int] = mapped_column(Integer, default=0)
+    avg_sentiment: Mapped[float] = mapped_column(Float, default=0.0)
+    sentiment_distribution: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    keywords: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    alerts: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    time_intervals: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    gemini_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 from app.models.creator import Creator  # noqa: E402, F401

@@ -107,3 +107,77 @@ class SentimentSummary(BaseModel):
     trend: str  # "rising", "falling", "stable"
     anomaly_detected: bool
     data_points: int
+
+
+# --- Comment Analysis Schemas ---
+
+class CommentAnalyzeRequest(BaseModel):
+    video_id: str
+    creator_id: Optional[str] = None
+    interval_seconds: int = Field(30, ge=5, le=3600)
+    max_comments: int = Field(100, ge=10, le=500)
+
+
+class CommentSentimentItem(BaseModel):
+    comment_id: str = ""
+    author: str = ""
+    text: str
+    likes: int = 0
+    published_at: str = ""
+    sentiment_score: float
+    sentiment_label: str
+    confidence: float
+    star_rating: int
+
+
+class TimeIntervalSnapshot(BaseModel):
+    interval_index: int
+    start: str
+    end: str
+    comment_count: int
+    avg_score: float
+    min_score: float = 0.0
+    max_score: float = 0.0
+
+
+class AlertItem(BaseModel):
+    severity: str  # "info", "warning", "critical"
+    message: str
+    keyword: str = ""
+
+
+class CommentAnalysisResponse(BaseModel):
+    id: Optional[str] = None
+    video_id: str
+    creator_id: Optional[str] = None
+    total_comments: int
+    avg_sentiment: float
+    sentiment_distribution: dict
+    most_negative: list[dict] = []
+    most_positive: list[dict] = []
+    anomaly_detected: bool = False
+    anomaly_message: Optional[str] = None
+    keywords: dict = {}
+    alerts: list[dict] = []
+    time_intervals: list[dict] = []
+    gemini_summary: str = ""
+    comments: list[dict] = []
+    analyzed_at: str = ""
+
+
+class CommentAnalysisListItem(BaseModel):
+    id: str
+    video_id: str
+    creator_id: Optional[str] = None
+    total_comments: int
+    avg_sentiment: float
+    anomaly_detected: bool = False
+    gemini_summary: Optional[str] = None
+    analyzed_at: datetime
+
+    model_config = {"from_attributes": True}
+
+    @property
+    def anomaly_from_alerts(self) -> bool:
+        return False
+
