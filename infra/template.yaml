@@ -565,14 +565,8 @@ Resources:
             TargetOriginId: ALBBackend
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
-            ForwardedValues:
-              QueryString: true
-              Headers:
-                - Authorization
-                - X-API-Key
-                - Content-Type
-                - Origin
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad  # CachingDisabled
+            OriginRequestPolicyId: b689b0a0-8776-4f0b-a06d-c70aa10fb033  # AllViewerExceptHostHeader
         CustomErrorResponses:
           - ErrorCode: 403
             ResponseCode: 200
