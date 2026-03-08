@@ -31,7 +31,8 @@ class GeminiProvider(BaseLLMProvider):
                 is_retriable = any(tok in error_str for tok in ["429", "503", "quota", "rate_limit", "resource_exhausted", "too many requests", "unavailable", "overloaded"])
                 if is_retriable and attempt < self.max_retries:
                     delay = self.base_delay * (2 ** attempt)
-                    logger.warning(f"Gemini rate limit hit, retrying in {delay}s (attempt {attempt + 1}/{self.max_retries})")
+                    logger.warning(f"Gemini rate limit hit, retrying in {delay}s (attempt {attempt + 1}/{self.max_retries}). ERROR: {error_str}")
+                    print(f"DEBUG GEMINI RETRY: {error_str}")
                     await asyncio.sleep(delay)
                 else:
                     logger.error(f"Gemini API error (attempt {attempt + 1}): {type(e).__name__}: {e}")

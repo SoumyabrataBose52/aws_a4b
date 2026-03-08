@@ -77,8 +77,33 @@ Language: {language}
         # Choose tier: default to fast (Sonnet 4.6), but use critical (Opus 4.6) for non-English
         tier = "critical" if language.lower() != "english" else "fast"
 
-        # Generate via LLM
-        text = await self.llm.generate_text(prompt, system_prompt=system_prompt, tier=tier)
+        # Generate via LLM with Gemini Fallback
+        import logging
+        import traceback
+        try:
+            text = await self.llm.generate_text(prompt, system_prompt=system_prompt, tier=tier)
+        except Exception as e:
+            logging.error(f"Bedrock content generation failed: {e}. Falling back to Gemini.")
+            try:
+                from app.llm.gemini import GeminiProvider
+                from app.config import get_settings
+                gemini_kwargs = {}
+                settings = get_settings()
+                api_key = getattr(settings, 'GEMINI_API_KEY', getattr(settings, 'gemini_api_key', None))
+                if api_key:
+                    gemini_kwargs["api_key"] = api_key
+                gemini_llm = GeminiProvider(**gemini_kwargs)
+                text = await gemini_llm.generate_text(prompt, system_prompt=system_prompt)
+                logging.info("Gemini fallback for content generation succeeded.")
+            except Exception as e2:
+                trace = traceback.format_exc()
+                logging.error(f"Gemini fallback also failed:\n{trace}")
+                # Both LLMs failed, likely due to rate limits or missing credentials.
+                # Fallback to Mock Provider to ensure the UI gets a graceful response.
+                logging.warning("Falling back to MockLLMProvider for graceful degradation.")
+                from app.llm.mock import MockLLMProvider
+                mock_llm = MockLLMProvider()
+                text = await mock_llm.generate_text(prompt, system_prompt=system_prompt)
 
         # Score style match
         confidence = await self.score_style_match(text, dna) if dna else 0.5

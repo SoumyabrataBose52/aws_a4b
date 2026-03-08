@@ -19,19 +19,25 @@ router = APIRouter(prefix="/api/v1/content", tags=["Content"], dependencies=[Dep
 @router.post("/generate", response_model=GeneratedContentResponse)
 async def generate_content(data: ContentGenerateRequest, db: Session = Depends(get_db)):
     """Generate content using AI Content Agent with Creator DNA."""
-    agent = ContentAgent(db)
-    content = await agent.generate_content(
-        creator_id=data.creator_id,
-        platforms=data.platforms,
-        topic=data.topic,
-        trend_id=data.trend_id,
-        language=data.language,
-    )
-    return GeneratedContentResponse(
-        content=content,
-        style_match_score=content.confidence_score or 0.5,
-        performance_prediction=content.performance_prediction,
-    )
+    try:
+        agent = ContentAgent(db)
+        content = await agent.generate_content(
+            creator_id=data.creator_id,
+            platforms=data.platforms,
+            topic=data.topic,
+            trend_id=data.trend_id,
+            language=data.language,
+        )
+        return GeneratedContentResponse(
+            content=content,
+            style_match_score=content.confidence_score or 0.5,
+            performance_prediction=content.performance_prediction,
+        )
+    except Exception as e:
+        import traceback
+        trace = traceback.format_exc()
+        print("GENERATE_ERROR:", trace)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("", response_model=ContentResponse, status_code=201)
