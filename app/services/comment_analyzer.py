@@ -4,7 +4,7 @@ Comment Analyzer Service — Orchestrates the full analysis pipeline.
 1. Fetches YouTube comments via YouTubeService
 2. Runs transformer-based sentiment scoring via SentimentService
 3. Groups results into equal time intervals
-4. Sends to Gemini for keyword extraction and alert generation
+4. Sends to LLM (AWS Bedrock Claude Opus 4.6) for keyword extraction and alert generation
 5. Returns a comprehensive analysis result
 """
 
@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.services.youtube_service import YouTubeService
 from app.services import sentiment_service
 from app.llm.base import get_llm_provider
+from app.config import get_settings
 from app.models.crisis import CommentAnalysis
 from app.events.bus import event_bus
 
@@ -71,8 +72,8 @@ async def analyze_video_comments(
     # 5. Group into time intervals
     time_intervals = _build_time_intervals(analyzed_comments, interval_seconds)
 
-    # 6. Call Gemini for keyword extraction and alert generation
-    keywords, alerts, gemini_summary = await _gemini_analyze(
+    # 6. Call LLM (Bedrock Claude Opus 4.6) for keyword extraction and alert generation
+    keywords, alerts, llm_summary = await _llm_analyze(
         analyzed_comments, aggregate, time_intervals
     )
 
@@ -87,7 +88,7 @@ async def analyze_video_comments(
         keywords=keywords,
         alerts=alerts,
         time_intervals=time_intervals,
-        gemini_summary=gemini_summary,
+        gemini_summary=llm_summary,
     )
     db.add(analysis_record)
     db.commit()
@@ -119,7 +120,7 @@ async def analyze_video_comments(
         "keywords": keywords,
         "alerts": alerts,
         "time_intervals": time_intervals,
-        "gemini_summary": gemini_summary,
+        "gemini_summary": llm_summary,
         "comments": analyzed_comments,
         "analyzed_at": analysis_record.analyzed_at.isoformat(),
     }
@@ -202,13 +203,14 @@ def _build_time_intervals(comments: list[dict], interval_seconds: int) -> list[d
     return intervals
 
 
-async def _gemini_analyze(
+async def _llm_analyze(
     comments: list[dict],
     aggregate,
     time_intervals: list[dict],
 ) -> tuple[dict, list[dict], str]:
     """
-    Use Gemini to extract keywords, generate alerts, and summarize the sentiment trajectory.
+    Use LLM (AWS Bedrock Claude Opus 4.6 via critical tier) to extract keywords,
+    generate alerts, and summarize the sentiment trajectory.
     Includes robust fallback: if generate_json fails, tries generate_text with manual JSON parsing.
     """
     llm = get_llm_provider()
@@ -266,28 +268,29 @@ Return a JSON object with this exact structure:
 
 Be specific. Use actual words from the comments. If sentiment is mostly positive, say so. If there are risks, explain them clearly."""
 
-    # Attempt 1: generate_json (structured output)
+    # Attempt 1: generate_json (structured output) — uses critical tier (Claude Opus 4.6)
     try:
-        logger.info("Calling Gemini generate_json for comment analysis...")
-        result = await llm.generate_json(prompt, system_prompt=system_prompt, temperature=0.3, max_tokens=1500)
-        logger.info(f"Gemini generate_json succeeded. Keys: {list(result.keys())}")
+        logger.info("Calling LLM generate_json for comment analysis (tier=critical)...")
+        result = await llm.generate_json(prompt, system_prompt=system_prompt, temperature=0.3, max_tokens=1500, tier="critical")
+        logger.info(f"LLM generate_json succeeded. Keys: {list(result.keys())}")
         keywords = result.get("keywords", {"crisis": [], "positive": [], "trending": []})
         alerts = result.get("alerts", [])
         summary = result.get("summary", "Analysis complete.")
         return keywords, alerts, summary
     except Exception as e:
-        logger.warning(f"Gemini generate_json failed: {type(e).__name__}: {e}")
+        logger.warning(f"LLM generate_json failed: {type(e).__name__}: {e}")
 
-    # Attempt 2: generate_text and parse JSON manually
+    # Attempt 2: generate_text and parse JSON manually (also uses critical tier)
     try:
-        logger.info("Falling back to Gemini generate_text for comment analysis...")
+        logger.info("Falling back to LLM generate_text for comment analysis (tier=critical)...")
         raw_text = await llm.generate_text(
             prompt + "\n\nIMPORTANT: Respond ONLY with valid JSON, no markdown fences.",
             system_prompt=system_prompt,
             temperature=0.3,
             max_tokens=1500,
+            tier="critical",
         )
-        logger.info(f"Gemini generate_text response length: {len(raw_text)}")
+        logger.info(f"LLM generate_text response length: {len(raw_text)}")
         # Clean markdown fences
         text = raw_text.strip()
         if text.startswith("```"):
@@ -299,14 +302,30 @@ Be specific. Use actual words from the comments. If sentiment is mostly positive
         summary = result.get("summary", "Analysis complete.")
         return keywords, alerts, summary
     except Exception as e:
-        logger.error(f"Gemini generate_text fallback also failed: {type(e).__name__}: {e}")
+        logger.error(f"LLM generate_text fallback also failed: {type(e).__name__}: {e}")
 
-    # Final fallback: no Gemini available
-    logger.error("All Gemini attempts failed. Returning fallback analysis.")
+    # Attempt 3: Gemini fallback (as requested explicitly)
+    try:
+        logger.info("Falling back to Gemini for comment analysis...")
+        from app.llm.gemini import GeminiProvider
+        settings = get_settings()
+        gemini_llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model_name="gemini-3-flash-preview")
+        result = await gemini_llm.generate_json(prompt, system_prompt=system_prompt, temperature=0.3, max_tokens=1500)
+        
+        keywords = result.get("keywords", {"crisis": [], "positive": [], "trending": []})
+        alerts = result.get("alerts", [])
+        summary = result.get("summary", "Analysis complete.")
+        return keywords, alerts, summary
+    except Exception as e:
+        logger.error(f"Gemini fallback also failed: {type(e).__name__}: {e}")
+
+    # Final fallback: no LLM available
+    logger.error("All LLM attempts failed. Returning fallback analysis.")
+    llm_summary = f"Analyzed {len(comments)} comments with average sentiment {aggregate.avg_score:+.2f}. AI summary could not be generated."
     return (
         {"crisis": [], "positive": [], "trending": []},
         [{"severity": "info", "message": "AI keyword analysis unavailable — using plain sentiment scores.", "keyword": "fallback"}],
-        f"Analyzed {len(comments)} comments with average sentiment {aggregate.avg_score:+.2f}. AI summary could not be generated.",
+        llm_summary,
     )
 
 

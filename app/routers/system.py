@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+from app.config import get_settings
 from app.database import get_db
 from app.middleware.auth import verify_api_key
 from app.models.system import AgentLog, Event
@@ -12,10 +13,28 @@ router = APIRouter(prefix="/api/v1/system", tags=["System"])
 @router.get("/health")
 def health_check():
     """Health check endpoint — no auth required."""
+    settings = get_settings()
     return {
         "status": "healthy",
         "service": "nexus-solo",
         "timestamp": datetime.utcnow().isoformat(),
+        "llm_provider": settings.LLM_PROVIDER,
+        "critical_model": settings.BEDROCK_CRITICAL_MODEL,
+        "fast_model": settings.BEDROCK_FAST_MODEL
+    }
+
+
+@router.get("/llm-info")
+def llm_info():
+    """Get active LLM configuration for the frontend."""
+    settings = get_settings()
+    return {
+        "provider": settings.LLM_PROVIDER,
+        "models": {
+            "critical": settings.BEDROCK_CRITICAL_MODEL,
+            "fast": settings.BEDROCK_FAST_MODEL
+        },
+        "region": settings.AWS_REGION
     }
 
 

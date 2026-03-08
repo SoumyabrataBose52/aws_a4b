@@ -98,7 +98,12 @@ export default function CrisisPage() {
                     <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                         Crisis Monitor
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-1">Real-time sentiment monitoring and PR risk management.</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-muted-foreground">Real-time sentiment monitoring and PR risk management.</p>
+                        <Badge variant="outline" className="text-[10px] bg-gradient-to-r from-blue-500/10 to-purple-500/10 text-blue-600 border-blue-500/20 gap-1 rounded-full px-2">
+                            <Brain size={10} /> Powered by Claude Opus 4.6 (AWS Bedrock)
+                        </Badge>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <Link href="/dashboard/crisis/comments">

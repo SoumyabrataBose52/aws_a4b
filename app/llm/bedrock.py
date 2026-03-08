@@ -25,8 +25,8 @@ class BedrockProvider(BaseLLMProvider):
     def __init__(
         self,
         region: str = "ap-south-1",
-        critical_model: str = "us.anthropic.claude-opus-4-6-20250624-v1:0",
-        fast_model: str = "us.anthropic.claude-sonnet-4-6-20250514-v1:0",
+        critical_model: str = "global.anthropic.claude-opus-4-6-v1",
+        fast_model: str = "global.anthropic.claude-sonnet-4-6",
         default_tier: str = "fast",
         max_retries: int = 3,
         base_delay: float = 2.0,

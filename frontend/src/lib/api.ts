@@ -144,4 +144,5 @@ export const system = {
   health: () => apiFetch('/api/v1/system/health'),
   events: () => apiFetch('/api/v1/system/events'),
   logs: (agentName?: string) => apiFetch(`/api/v1/system/logs${agentName ? `?agent_name=${agentName}` : ''}`),
+  llmInfo: () => apiFetch('/api/v1/system/llm-info'),
 };

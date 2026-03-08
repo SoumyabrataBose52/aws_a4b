@@ -74,8 +74,11 @@ Language: {language}
         if trend_id:
             prompt += f"\nThis should tie into trending topic ID: {trend_id}"
 
+        # Choose tier: default to fast (Sonnet 4.6), but use critical (Opus 4.6) for non-English
+        tier = "critical" if language.lower() != "english" else "fast"
+
         # Generate via LLM
-        text = await self.llm.generate_text(prompt, system_prompt=system_prompt)
+        text = await self.llm.generate_text(prompt, system_prompt=system_prompt, tier=tier)
 
         # Score style match
         confidence = await self.score_style_match(text, dna) if dna else 0.5

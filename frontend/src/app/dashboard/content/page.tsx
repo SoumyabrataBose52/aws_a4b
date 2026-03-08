@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
+import { BrainCircuit } from "lucide-react";
 
 export default function ContentPage() {
     const [list, setList] = useState<any[]>([]);
@@ -76,17 +77,22 @@ export default function ContentPage() {
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">Content Engine</h1>
-                <p className="text-sm text-muted-foreground mt-1">AI-powered multi-platform content generation.</p>
+                <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-muted-foreground">AI-powered multi-platform content generation.</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Left — Generator */}
                 <div className="lg:col-span-4 space-y-4">
                     <Card className="bg-card border-border">
-                        <CardHeader className="pb-3">
+                        <CardHeader className="pb-3 flex flex-row items-center justify-between">
                             <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                 <Sparkles size={14} className="text-accent-brand" /> Generator
                             </CardTitle>
+                            <Badge variant="outline" className="text-[10px] bg-secondary/50 font-normal">
+                                <BrainCircuit size={10} className="mr-1 text-accent-brand" /> Claude Sonnet/Opus 4.6
+                            </Badge>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleGenerate} className="flex flex-col gap-4">

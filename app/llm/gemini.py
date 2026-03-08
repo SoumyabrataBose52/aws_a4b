@@ -19,14 +19,17 @@ class GeminiProvider(BaseLLMProvider):
         self.base_delay = 15  # seconds — Gemini free tier has 15 RPM
 
     async def _call_with_retry(self, func, *args, **kwargs):
-        """Call a function with exponential backoff retry on rate limit errors only."""
+        """Call a function with exponential backoff retry on rate limit/availability errors."""
         for attempt in range(self.max_retries + 1):
             try:
-                return func(*args, **kwargs)
+                if asyncio.iscoroutinefunction(func) or hasattr(func, "__call__") and "aio.models" in str(func):
+                    # We can assume client.aio methods are awaitable
+                    return await func(*args, **kwargs)
+                return await asyncio.get_event_loop().run_in_executor(None, lambda: func(*args, **kwargs))
             except Exception as e:
                 error_str = str(e).lower()
-                is_rate_limit = any(tok in error_str for tok in ["429", "quota", "rate_limit", "resource_exhausted", "too many requests"])
-                if is_rate_limit and attempt < self.max_retries:
+                is_retriable = any(tok in error_str for tok in ["429", "503", "quota", "rate_limit", "resource_exhausted", "too many requests", "unavailable", "overloaded"])
+                if is_retriable and attempt < self.max_retries:
                     delay = self.base_delay * (2 ** attempt)
                     logger.warning(f"Gemini rate limit hit, retrying in {delay}s (attempt {attempt + 1}/{self.max_retries})")
                     await asyncio.sleep(delay)
@@ -50,7 +53,7 @@ class GeminiProvider(BaseLLMProvider):
             config.system_instruction = system_prompt
 
         response = await self._call_with_retry(
-            self.client.models.generate_content,
+            self.client.aio.models.generate_content,
             model=self.model_name,
             contents=prompt,
             config=config,
@@ -77,7 +80,7 @@ class GeminiProvider(BaseLLMProvider):
         )
 
         response = await self._call_with_retry(
-            self.client.models.generate_content,
+            self.client.aio.models.generate_content,
             model=self.model_name,
             contents=prompt,
             config=config,
