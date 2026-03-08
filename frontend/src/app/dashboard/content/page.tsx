@@ -146,7 +146,11 @@ export default function ContentPage() {
                         <CardContent className="p-0">
                             <div className="divide-y divide-border">
                                 {list.slice(0, 5).map((item) => (
-                                    <div key={item.id} className="px-4 py-3 hover:bg-accent/30 transition-colors cursor-pointer">
+                                    <div
+                                        key={item.id}
+                                        className="px-4 py-3 hover:bg-accent/30 transition-colors cursor-pointer"
+                                        onClick={() => setGenResult({ content: item, style_match_score: item.confidence_score || 0.85 })}
+                                    >
                                         <p className="text-sm font-medium line-clamp-1">{item.topic || item.text?.slice(0, 50)}</p>
                                         <div className="flex items-center gap-2 mt-1">
                                             <Badge variant="secondary" className="text-[9px]">{item.status || "draft"}</Badge>

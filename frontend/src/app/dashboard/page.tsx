@@ -5,7 +5,7 @@ import Link from "next/link";
 import { creators, analytics, system, youtube } from "@/lib/api";
 import {
   Users, TrendingUp, AlertCircle, ArrowRight, Play,
-  MessageCircle, Activity, Flame, ExternalLink,
+  MessageCircle, Activity, Flame, ExternalLink, FileDown, Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,19 +14,205 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/ui/stat-card";
 import { GradientText } from "@/components/ui/reactbits/gradient-text";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ResponsiveGrid, ResponsiveStack } from "@/components/ui/responsive-grid";
+import { ResponsiveGrid } from "@/components/ui/responsive-grid";
 import {
   Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+// ──────────────────────────────────────────────────────────────
+// PDF Helper – builds an off-screen HTML string and renders it
+// ──────────────────────────────────────────────────────────────
+async function exportDashboardPDF(
+  stats: any,
+  creatorList: any[],
+  trending: any[],
+  health: any
+) {
+  const { default: jsPDF } = await import("jspdf");
+  const { default: html2canvas } = await import("html2canvas");
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-US", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+  // Build HTML string
+  const metrics = [
+    { label: "Total Creators", value: creatorList.length, icon: "👥" },
+    { label: "Content Pieces", value: stats?.total_content ?? 0, icon: "🎬" },
+    { label: "Active Crises", value: stats?.active_crises ?? 0, icon: "⚠️" },
+    { label: "Avg. Sentiment", value: (stats?.current_sentiment ?? 0).toFixed(1), icon: "💬" },
+  ];
+
+  const metricsHTML = metrics
+    .map(
+      (m) => `
+      <div style="flex:1;min-width:140px;background:#f8fafc;border:1px solid #e2e8f0;
+                  border-radius:12px;padding:20px 16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <div style="font-size:28px;margin-bottom:6px">${m.icon}</div>
+        <div style="font-size:26px;font-weight:700;color:#1e293b">${m.value}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px">${m.label}</div>
+      </div>`
+    )
+    .join("");
+
+  const creatorRowsHTML = creatorList
+    .map(
+      (c, i) => `
+      <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8fafc"}">
+        <td style="padding:10px 14px;font-size:13px;font-weight:500;color:#1e293b">${c.name}</td>
+        <td style="padding:10px 14px;font-size:12px;color:#475569">
+          ${(c.platforms || []).join(", ") || "—"}
+        </td>
+        <td style="padding:10px 14px">
+          <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+                       background:${c.status === "active" ? "#dcfce7" : "#f1f5f9"};
+                       color:${c.status === "active" ? "#16a34a" : "#64748b"}">
+            ${c.status}
+          </span>
+        </td>
+      </tr>`
+    )
+    .join("");
+
+  const trendingHTML = trending
+    .map(
+      (v, i) => `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;
+                  border-bottom:1px solid #f1f5f9">
+        <div style="font-size:18px;font-weight:700;color:${i < 3 ? "#f97316" : "#94a3b8"};
+                    min-width:28px;text-align:center;margin-top:2px">${i + 1}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1e293b;line-height:1.4">${v.title}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:3px">
+            ${v.channel_title} · ${Number(v.views).toLocaleString()} views
+          </div>
+        </div>
+      </div>`
+    )
+    .join("");
+
+  const htmlContent = `
+    <div id="pdf-root" style="font-family:'Segoe UI',system-ui,sans-serif;background:#ffffff;
+         width:800px;padding:48px 52px;color:#1e293b;box-sizing:border-box">
+
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;
+                  padding-bottom:24px;border-bottom:2px solid #7c3aed;margin-bottom:32px">
+        <div>
+          <div style="font-size:11px;letter-spacing:2px;color:#7c3aed;font-weight:700;
+                      text-transform:uppercase;margin-bottom:6px">NEXUS Platform</div>
+          <h1 style="font-size:28px;font-weight:800;color:#1e293b;margin:0 0 4px">
+            Dashboard Report
+          </h1>
+          <p style="font-size:13px;color:#64748b;margin:0">${dateStr} · ${timeStr}</p>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;color:#64748b">System Status</div>
+          <div style="font-size:13px;font-weight:700;color:${health?.status === "healthy" ? "#16a34a" : "#dc2626"};margin-top:2px">
+            ${health?.status === "healthy" ? "✅ All Systems Operational" : "⚠️ System Degraded"}
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Metrics -->
+      <h2 style="font-size:14px;font-weight:700;color:#7c3aed;text-transform:uppercase;
+                 letter-spacing:1px;margin:0 0 16px">Key Metrics</h2>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px">
+        ${metricsHTML}
+      </div>
+
+      <!-- Creator Roster -->
+      <h2 style="font-size:14px;font-weight:700;color:#7c3aed;text-transform:uppercase;
+                 letter-spacing:1px;margin:0 0 16px">Creator Roster (${creatorList.length})</h2>
+      ${creatorList.length === 0
+      ? `<p style="color:#94a3b8;font-size:13px;margin-bottom:36px">No creators found.</p>`
+      : `
+        <table style="width:100%;border-collapse:collapse;margin-bottom:36px;
+                      border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+          <thead>
+            <tr style="background:#7c3aed">
+              <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#fff;text-align:left">Name</th>
+              <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#fff;text-align:left">Platforms</th>
+              <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#fff;text-align:left">Status</th>
+            </tr>
+          </thead>
+          <tbody>${creatorRowsHTML}</tbody>
+        </table>`
+    }
+
+      <!-- Trending -->
+      ${trending.length > 0
+      ? `
+        <h2 style="font-size:14px;font-weight:700;color:#7c3aed;text-transform:uppercase;
+                   letter-spacing:1px;margin:0 0 16px">Trending This Week (IN)</h2>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+                    padding:12px 20px;margin-bottom:36px">
+          ${trendingHTML}
+        </div>`
+      : ""
+    }
+
+      <!-- Footer -->
+      <div style="border-top:1px solid #e2e8f0;padding-top:16px;display:flex;
+                  justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:#94a3b8">Generated by Nexus AI Management Platform</span>
+        <span style="font-size:11px;color:#94a3b8">${now.toISOString()}</span>
+      </div>
+    </div>`;
+
+  // Mount off-screen
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;left:-9999px;top:0;z-index:-1;";
+  container.innerHTML = htmlContent;
+  document.body.appendChild(container);
+
+  const root = container.querySelector("#pdf-root") as HTMLElement;
+
+  try {
+    const canvas = await html2canvas(root, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      width: 800,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
+
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const ratio = pdfW / canvas.width;
+    const totalH = canvas.height * ratio;
+
+    // Multi-page support
+    let yOffset = 0;
+    while (yOffset < totalH) {
+      if (yOffset > 0) pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, -yOffset, pdfW, totalH);
+      yOffset += pdfH;
+    }
+
+    const fileName = `nexus-report-${now.toISOString().slice(0, 10)}.pdf`;
+    pdf.save(fileName);
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Dashboard Component
+// ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const [creatorList, setCreatorList] = useState<any[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
   const [health, setHealth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -49,6 +235,17 @@ export default function Dashboard() {
     }
     load();
   }, []);
+
+  async function handleExportReport() {
+    setExporting(true);
+    try {
+      await exportDashboardPDF(stats, creatorList, trending, health);
+    } catch (e) {
+      console.error("PDF export failed:", e);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -97,7 +294,25 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="text-xs">Export Report</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1.5"
+            onClick={handleExportReport}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                Generating…
+              </>
+            ) : (
+              <>
+                <FileDown size={13} />
+                Export Report
+              </>
+            )}
+          </Button>
           <Button size="sm" className="text-xs bg-accent-brand hover:bg-accent-brand/90 text-white">
             <Activity size={14} className="mr-1.5" /> Run Diagnostics
           </Button>
@@ -246,6 +461,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    </div >
+    </div>
   );
 }
