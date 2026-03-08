@@ -507,6 +507,29 @@ Resources:
         SigningBehavior: always
         SigningProtocol: sigv4
 
+  RewriteURIFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "${AWS::StackName}-rewrite-uri"
+      AutoPublish: true
+      FunctionCode: |
+        function handler(event) {
+            var request = event.request;
+            var uri = request.uri;
+            if (uri.startsWith('/api/')) {
+                return request;
+            }
+            if (uri.endsWith('/')) {
+                request.uri += 'index.html';
+            } else if (!uri.includes('.')) {
+                request.uri += '.html';
+            }
+            return request;
+        }
+      FunctionConfig:
+        Comment: "Rewrite extensionless URIs to .html"
+        Runtime: cloudfront-js-1.0
+
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -533,6 +556,9 @@ Resources:
           CachedMethods: [GET, HEAD]
           ForwardedValues:
             QueryString: false
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt RewriteURIFunction.FunctionMetadata.FunctionARN
         CacheBehaviors:
           # Route /api/* to ALB
           - PathPattern: /api/*

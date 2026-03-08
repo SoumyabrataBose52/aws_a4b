@@ -74,6 +74,12 @@ ALB_URL=$(aws cloudformation describe-stacks \
   --query "Stacks[0].Outputs[?OutputKey=='ALBURL'].OutputValue" \
   --output text)
 
+CF_URL=$(aws cloudformation describe-stacks \
+  --stack-name "${STACK_NAME}" \
+  --region "${REGION}" \
+  --query "Stacks[0].Outputs[?OutputKey=='CloudFrontURL'].OutputValue" \
+  --output text)
+
 BUCKET_NAME=$(aws cloudformation describe-stacks \
   --stack-name "${STACK_NAME}" \
   --region "${REGION}" \
@@ -81,7 +87,7 @@ BUCKET_NAME=$(aws cloudformation describe-stacks \
   --output text)
 
 cd frontend
-NEXT_PUBLIC_API_URL="${ALB_URL}" npm run build
+NEXT_PUBLIC_API_URL="${CF_URL}" NEXT_PUBLIC_API_KEY="nexus-prod-key-secure-2026" npm run build
 aws s3 sync out/ "s3://${BUCKET_NAME}/" --delete --region "${REGION}"
 cd ..
 
@@ -90,12 +96,6 @@ echo "  ✓ Frontend deployed to S3"
 # ── Step 5: Invalidate CloudFront cache ──
 echo ""
 echo "▸ Step 5/5: Invalidating CloudFront cache..."
-
-CF_URL=$(aws cloudformation describe-stacks \
-  --stack-name "${STACK_NAME}" \
-  --region "${REGION}" \
-  --query "Stacks[0].Outputs[?OutputKey=='CloudFrontURL'].OutputValue" \
-  --output text)
 
 CF_DIST_ID=$(aws cloudfront list-distributions \
   --query "DistributionList.Items[?Origins.Items[?Id=='S3Frontend']].Id" \
