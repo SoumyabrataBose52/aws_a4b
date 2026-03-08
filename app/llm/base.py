@@ -48,6 +48,8 @@ def get_llm_provider() -> BaseLLMProvider:
             region=settings.AWS_REGION,
             critical_model=settings.BEDROCK_CRITICAL_MODEL,
             fast_model=settings.BEDROCK_FAST_MODEL,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID or None,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY or None,
         )
     elif settings.LLM_PROVIDER == "gemini":
         from app.llm.gemini import GeminiProvider

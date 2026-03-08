@@ -30,6 +30,8 @@ class BedrockProvider(BaseLLMProvider):
         default_tier: str = "fast",
         max_retries: int = 3,
         base_delay: float = 2.0,
+        aws_access_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
     ):
         self.critical_model = critical_model
         self.fast_model = fast_model
@@ -44,7 +46,14 @@ class BedrockProvider(BaseLLMProvider):
             read_timeout=120,
             connect_timeout=10,
         )
-        self.client = boto3.client("bedrock-runtime", config=boto_config)
+        # Pass credentials explicitly if provided (from .env via pydantic-settings);
+        # fall back to boto3 default credential chain (~/.aws, instance profile, etc.)
+        client_kwargs: dict = {"config": boto_config}
+        if aws_access_key_id:
+            client_kwargs["aws_access_key_id"] = aws_access_key_id
+        if aws_secret_access_key:
+            client_kwargs["aws_secret_access_key"] = aws_secret_access_key
+        self.client = boto3.client("bedrock-runtime", **client_kwargs)
         logger.info(
             f"BedrockProvider initialized: region={region}, "
             f"critical={critical_model}, fast={fast_model}"

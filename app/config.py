@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
     # AWS / Bedrock
     AWS_REGION: str = "ap-south-1"
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
     BEDROCK_CRITICAL_MODEL: str = "us.anthropic.claude-opus-4-6-20250624-v1:0"
     BEDROCK_FAST_MODEL: str = "us.anthropic.claude-sonnet-4-6-20250514-v1:0"
 
@@ -47,7 +49,7 @@ class Settings(BaseSettings):
             return self.DATABASE_URL
         return f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 @lru_cache()
