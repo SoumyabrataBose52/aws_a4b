@@ -65,8 +65,10 @@ export default function CreatorStatsPage({ params }: { params: Promise<{ id: str
         try {
             const res = await youtube.channelVideos(channelId);
             setVideos(res.videos || []);
-        } catch (e) {
-            console.error("Failed to load videos:", e);
+        } catch (e: any) {
+            // Gracefully handle missing videos without a loud console error
+            console.warn("Notice: Could not load videos -", e.message || "Invalid channel ID");
+            setVideos([]);
         }
         setVideosLoading(false);
     }
