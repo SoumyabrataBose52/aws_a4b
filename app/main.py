@@ -48,15 +48,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Middleware (order matters — outermost first)
+# Middleware (order matters — last added = outermost = runs first)
+# CORSMiddleware MUST be added last so it wraps everything and
+# handles preflight OPTIONS before rate-limiting or logging can interfere.
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Register routers

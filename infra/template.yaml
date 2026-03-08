@@ -1,0 +1,588 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Nexus Solo — Full AWS deployment (VPC, RDS, ECS Fargate, ALB, S3, CloudFront, ECR, IAM)"
+
+# ──────────────────────────────────────────────────────────────
+# Parameters
+# ──────────────────────────────────────────────────────────────
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [production, staging]
+
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: "MySQL root password for RDS"
+
+  DefaultAPIKey:
+    Type: String
+    Default: nexus-prod-key-secure-2026
+    NoEcho: true
+
+  YouTubeAPIKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+
+  InstagramAppId:
+    Type: String
+    Default: ""
+
+  InstagramAppSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+
+  ContainerImage:
+    Type: String
+    Description: "ECR image URI for the backend (account.dkr.ecr.region.amazonaws.com/repo:tag)"
+
+# ──────────────────────────────────────────────────────────────
+# VPC & Networking
+# ──────────────────────────────────────────────────────────────
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-vpc"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # ── Public Subnets (ALB, NAT) ──
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-1"
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-2"
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # ── NAT Gateway (so Fargate in private subnets can reach Bedrock) ──
+  NATElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+
+  # ── Private Subnets (ECS, RDS) ──
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-1"
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.11.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-private-2"
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway
+
+  PrivateSubnet1RouteTableAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  # ──────────────────────────────────────────────────────────────
+  # Security Groups
+  # ──────────────────────────────────────────────────────────────
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ALB - allow HTTP/HTTPS from internet
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS tasks - allow from ALB only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS - allow MySQL from ECS only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+
+  # ──────────────────────────────────────────────────────────────
+  # RDS MySQL
+  # ──────────────────────────────────────────────────────────────
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for RDS
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub "${AWS::StackName}-mysql"
+      Engine: mysql
+      EngineVersion: "8.0"
+      DBInstanceClass: db.t3.small
+      AllocatedStorage: 20
+      MasterUsername: admin
+      MasterUserPassword: !Ref DBMasterPassword
+      DBName: nexus_solo
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      BackupRetentionPeriod: 7
+
+  # ──────────────────────────────────────────────────────────────
+  # Secrets Manager
+  # ──────────────────────────────────────────────────────────────
+  AppSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${AWS::StackName}/app-secrets"
+      SecretString: !Sub |
+        {
+          "DB_PASSWORD": "${DBMasterPassword}",
+          "DEFAULT_API_KEY": "${DefaultAPIKey}",
+          "YOUTUBE_API_KEY": "${YouTubeAPIKey}",
+          "INSTAGRAM_APP_ID": "${InstagramAppId}",
+          "INSTAGRAM_APP_SECRET": "${InstagramAppSecret}"
+        }
+
+  # ──────────────────────────────────────────────────────────────
+  # ECR Repository
+  # ──────────────────────────────────────────────────────────────
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${AWS::StackName}-backend"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [{
+              "rulePriority": 1,
+              "selection": {
+                "tagStatus": "untagged",
+                "countType": "sinceImagePushed",
+                "countUnit": "days",
+                "countNumber": 7
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+
+  # ──────────────────────────────────────────────────────────────
+  # IAM Roles
+  # ──────────────────────────────────────────────────────────────
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref AppSecret
+
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BedrockAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource: "*"
+        - PolicyName: SecretsReadOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref AppSecret
+
+  # ──────────────────────────────────────────────────────────────
+  # ECS Cluster & Service
+  # ──────────────────────────────────────────────────────────────
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${AWS::StackName}-cluster"
+      CapacityProviders:
+        - FARGATE
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${AWS::StackName}"
+      RetentionInDays: 14
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${AWS::StackName}-backend"
+      Cpu: "1024"
+      Memory: "2048"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Ref ContainerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8000
+              Protocol: tcp
+          Environment:
+            - Name: APP_ENV
+              Value: !Ref Environment
+            - Name: DEBUG
+              Value: "false"
+            - Name: LLM_PROVIDER
+              Value: bedrock
+            - Name: AWS_REGION
+              Value: !Ref "AWS::Region"
+            - Name: BEDROCK_CRITICAL_MODEL
+              Value: us.anthropic.claude-opus-4-6-20250624-v1:0
+            - Name: BEDROCK_FAST_MODEL
+              Value: us.anthropic.claude-sonnet-4-6-20250514-v1:0
+            - Name: DB_HOST
+              Value: !GetAtt Database.Endpoint.Address
+            - Name: DB_PORT
+              Value: !GetAtt Database.Endpoint.Port
+            - Name: DB_NAME
+              Value: nexus_solo
+            - Name: DB_USER
+              Value: admin
+            - Name: DB_PASSWORD
+              Value: !Ref DBMasterPassword
+            - Name: DEFAULT_API_KEY
+              Value: !Ref DefaultAPIKey
+            - Name: API_KEY_SECRET
+              Value: !Sub "${AWS::StackName}-secret"
+            - Name: YOUTUBE_API_KEY
+              Value: !Ref YouTubeAPIKey
+            - Name: INSTAGRAM_APP_ID
+              Value: !Ref InstagramAppId
+            - Name: INSTAGRAM_APP_SECRET
+              Value: !Ref InstagramAppSecret
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: backend
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/system/health')\" || exit 1"
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 30
+
+  # ── Application Load Balancer ──
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${AWS::StackName}-alb"
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-tg"
+      Port: 8000
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckPath: /api/v1/system/health
+      HealthCheckIntervalSeconds: 30
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn: ALBListener
+    Properties:
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+      LoadBalancers:
+        - ContainerName: backend
+          ContainerPort: 8000
+          TargetGroupArn: !Ref ALBTargetGroup
+
+  # ──────────────────────────────────────────────────────────────
+  # S3 + CloudFront (Frontend)
+  # ──────────────────────────────────────────────────────────────
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-frontend-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          # S3 frontend
+          - Id: S3Frontend
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref CloudFrontOAC
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+          # ALB backend (API)
+          - Id: ALBBackend
+            DomainName: !GetAtt ALB.DNSName
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+        DefaultCacheBehavior:
+          TargetOriginId: S3Frontend
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+        CacheBehaviors:
+          # Route /api/* to ALB
+          - PathPattern: /api/*
+            TargetOriginId: ALBBackend
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
+            ForwardedValues:
+              QueryString: true
+              Headers:
+                - Authorization
+                - X-API-Key
+                - Content-Type
+                - Origin
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad  # CachingDisabled
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+# ──────────────────────────────────────────────────────────────
+# Outputs
+# ──────────────────────────────────────────────────────────────
+Outputs:
+  ALBURL:
+    Description: Backend API URL (direct)
+    Value: !Sub "http://${ALB.DNSName}"
+
+  CloudFrontURL:
+    Description: Frontend URL (via CloudFront)
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}"
+
+  RDSEndpoint:
+    Description: RDS MySQL endpoint
+    Value: !GetAtt Database.Endpoint.Address
+
+  ECRRepositoryURI:
+    Description: ECR repository URI
+    Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}"
+
+  ECSClusterName:
+    Description: ECS cluster name
+    Value: !Ref ECSCluster
+
+  FrontendBucketName:
+    Description: S3 bucket for frontend assets
+    Value: !Ref FrontendBucket

@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: nexus_root_pw
+      MYSQL_DATABASE: nexus_solo
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: mysql+pymysql://root:nexus_root_pw@db:3306/nexus_solo
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      AWS_REGION: ap-south-1
+      BEDROCK_CRITICAL_MODEL: us.anthropic.claude-opus-4-6-20250624-v1:0
+      BEDROCK_FAST_MODEL: us.anthropic.claude-sonnet-4-6-20250514-v1:0
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      DEFAULT_API_KEY: nexus-dev-key-12345
+      API_KEY_SECRET: nexus-dev-secret
+      APP_ENV: development
+      DEBUG: "false"
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      INSTAGRAM_APP_ID: ${INSTAGRAM_APP_ID:-}
+      INSTAGRAM_APP_SECRET: ${INSTAGRAM_APP_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_API_KEY: nexus-dev-key-12345
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

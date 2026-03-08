@@ -13,6 +13,7 @@ class MockLLMProvider(BaseLLMProvider):
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: int = 2000,
+        tier: Optional[str] = None,
     ) -> str:
         prompt_lower = prompt.lower()
 
@@ -43,6 +44,7 @@ class MockLLMProvider(BaseLLMProvider):
         system_prompt: Optional[str] = None,
         temperature: float = 0.3,
         max_tokens: int = 2000,
+        tier: Optional[str] = None,
     ) -> dict:
         prompt_lower = prompt.lower()
 
