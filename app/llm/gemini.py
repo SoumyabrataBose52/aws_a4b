@@ -40,6 +40,7 @@ class GeminiProvider(BaseLLMProvider):
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: int = 2000,
+        tier: Optional[str] = None,
     ) -> str:
         config = types.GenerateContentConfig(
             temperature=temperature,
@@ -62,6 +63,7 @@ class GeminiProvider(BaseLLMProvider):
         system_prompt: Optional[str] = None,
         temperature: float = 0.3,
         max_tokens: int = 2000,
+        tier: Optional[str] = None,
     ) -> dict:
         json_system = "You are a helpful assistant. Respond ONLY with valid JSON. No markdown code fences, no explanation."
         if system_prompt:

@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+.env
+.git
+.gitignore
+.vscode
+*.md
+frontend/
+frontend_ui_backup_20260301/
+frontend_v3_backup_20260301.zip
+migrate_yt.py
+package-lock.json
+infra/
+scripts/
+docker-compose.yml

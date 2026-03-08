@@ -41,7 +41,7 @@ Generate {count} distinct response strategies as JSON with this structure:
   ]
 }}"""
 
-        result = await self.llm.generate_json(prompt, system_prompt=system_prompt)
+        result = await self.llm.generate_json(prompt, system_prompt=system_prompt, tier="critical")
 
         strategies = []
         for s in result.get("strategies", [])[:count]:

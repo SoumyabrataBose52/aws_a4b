@@ -15,7 +15,8 @@ pydantic-settings==2.5.2
 email-validator==2.2.0
 
 # LLM Providers
-google-generativeai==0.8.2
+google-genai>=1.66.0
+boto3>=1.35.0
 
 # Platform APIs
 google-api-python-client==2.147.0

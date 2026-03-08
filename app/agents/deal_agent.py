@@ -32,7 +32,7 @@ Provide rate benchmarking as JSON with:
 - typical_requirements (list)
 - negotiation_tips (list)"""
 
-        research = await self.llm.generate_json(prompt)
+        research = await self.llm.generate_json(prompt, tier="critical")
 
         deal.research_data = research
         self.db.commit()
@@ -60,7 +60,7 @@ Proposed deliverables: {deal.deliverables}
 Proposed rate: {deal.proposed_rate}
 Include a compelling pitch about why this partnership would be mutually beneficial."""
 
-        email = await self.llm.generate_text(prompt, system_prompt=system_prompt)
+        email = await self.llm.generate_text(prompt, system_prompt=system_prompt, tier="critical")
 
         deal.outreach_email = email
         deal.last_contact = datetime.utcnow()
@@ -86,7 +86,7 @@ Deliverables: {deal.deliverables}
 
 Suggest a counter-offer with reasoning and a negotiation script."""
 
-        response = await self.llm.generate_text(prompt, system_prompt=system_prompt)
+        response = await self.llm.generate_text(prompt, system_prompt=system_prompt, tier="critical")
 
         suggested = rates.get("percentile50", current_offer * 1.3) if rates else current_offer * 1.3
 
