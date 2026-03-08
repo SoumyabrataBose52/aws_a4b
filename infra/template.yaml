@@ -221,10 +221,11 @@ Resources:
   Database:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
     Properties:
       DBInstanceIdentifier: !Sub "${AWS::StackName}-mysql"
       Engine: mysql
-      EngineVersion: "8.0"
+      EngineVersion: "8.0.44"
       DBInstanceClass: db.t3.small
       AllocatedStorage: 20
       MasterUsername: admin
@@ -338,11 +339,6 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: !Sub "${AWS::StackName}-cluster"
-      CapacityProviders:
-        - FARGATE
-      ClusterSettings:
-        - Name: containerInsights
-          Value: enabled
 
   LogGroup:
     Type: AWS::Logs::LogGroup

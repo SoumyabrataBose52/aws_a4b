@@ -1,0 +1,32 @@
+[
+    {
+        "OutputKey": "ALBURL",
+        "OutputValue": "http://nexus-solo-alb-1742534282.ap-south-1.elb.amazonaws.com",
+        "Description": "Backend API URL (direct)"
+    },
+    {
+        "OutputKey": "RDSEndpoint",
+        "OutputValue": "nexus-solo-mysql.cn6ecauc8m9u.ap-south-1.rds.amazonaws.com",
+        "Description": "RDS MySQL endpoint"
+    },
+    {
+        "OutputKey": "CloudFrontURL",
+        "OutputValue": "https://d3w46ebpio1q7r.cloudfront.net",
+        "Description": "Frontend URL (via CloudFront)"
+    },
+    {
+        "OutputKey": "ECSClusterName",
+        "OutputValue": "nexus-solo-cluster",
+        "Description": "ECS cluster name"
+    },
+    {
+        "OutputKey": "FrontendBucketName",
+        "OutputValue": "nexus-solo-frontend-515966512995",
+        "Description": "S3 bucket for frontend assets"
+    },
+    {
+        "OutputKey": "ECRRepositoryURI",
+        "OutputValue": "515966512995.dkr.ecr.ap-south-1.amazonaws.com/nexus-solo-backend",
+        "Description": "ECR repository URI"
+    }
+]

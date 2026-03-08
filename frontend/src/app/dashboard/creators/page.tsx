@@ -116,7 +116,7 @@ export default function CreatorsPage() {
                             <Card key={c.id} className="card-glow bg-card border-border group">
                                 <CardContent className="p-5">
                                     <div className="flex items-start justify-between mb-4">
-                                        <Link href={`/dashboard/creators/${c.id}`} className="flex items-center gap-3">
+                                        <Link href={`/dashboard/creators/details?id=${c.id}`} className="flex items-center gap-3">
                                             {c.avatar_url ? (
                                                 <img
                                                     src={c.avatar_url}
@@ -142,7 +142,7 @@ export default function CreatorsPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="bg-popover border-border">
-                                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/creators/${c.id}`)}>
+                                                <DropdownMenuItem onSelect={() => router.push(`/dashboard/creators/details?id=${c.id}`)}>
                                                     View Profile
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onSelect={() => setEditingCreator(c)}>
@@ -223,7 +223,7 @@ export default function CreatorsPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Link href={`/dashboard/creators/${c.id}`}>
+                                            <Link href={`/dashboard/creators/details?id=${c.id}`}>
                                                 <Button variant="ghost" size="sm" className="text-xs h-7">Manage</Button>
                                             </Link>
                                         </TableCell>

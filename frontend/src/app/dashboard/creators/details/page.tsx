@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { creators, youtube } from "@/lib/api";
 import {
     ArrowLeft, Users, Eye, Play, Calendar, ExternalLink,
@@ -33,8 +34,9 @@ interface CreatorData {
     dna?: any;
 }
 
-export default function CreatorStatsPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params);
+function CreatorStatsContent() {
+    const searchParams = useSearchParams();
+    const id = searchParams.get("id");
     const [creator, setCreator] = useState<CreatorData | null>(null);
     const [videos, setVideos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -42,13 +44,17 @@ export default function CreatorStatsPage({ params }: { params: Promise<{ id: str
     const [videosLoading, setVideosLoading] = useState(false);
 
     useEffect(() => {
-        loadCreator();
+        if (id) {
+            loadCreator(id);
+        } else {
+            setLoading(false);
+        }
     }, [id]);
 
-    async function loadCreator() {
+    async function loadCreator(creatorId: string) {
         setLoading(true);
         try {
-            const c = await creators.get(id);
+            const c = await creators.get(creatorId);
             setCreator(c);
             // If creator has a YouTube channel, load recent videos
             if (c.youtube_channel_id) {
@@ -436,5 +442,21 @@ export default function CreatorStatsPage({ params }: { params: Promise<{ id: str
                 )}
             </div>
         </div>
+    );
+}
+
+export default function CreatorStatsPage() {
+    return (
+        <Suspense fallback={
+            <div className="animate-fade-in flex flex-col gap-6">
+                <Skeleton className="h-6 w-32" />
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-20 w-20 rounded-full" />
+                    <Skeleton className="h-10 w-48" />
+                </div>
+            </div>
+        }>
+            <CreatorStatsContent />
+        </Suspense>
     );
 }

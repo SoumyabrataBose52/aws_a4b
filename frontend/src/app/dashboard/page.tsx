@@ -404,7 +404,7 @@ export default function Dashboard() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/dashboard/creators/${c.id}`}>
+                        <Link href={`/dashboard/creators/details?id=${c.id}`}>
                           <Button variant="ghost" size="sm" className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity h-7">
                             Manage <ExternalLink size={10} className="ml-1" />
                           </Button>
