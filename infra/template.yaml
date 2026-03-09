@@ -36,6 +36,11 @@ Parameters:
     Default: ""
     NoEcho: true
 
+  GeminiAPIKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+
   InstagramAppId:
     Type: String
     Default: ""
@@ -419,13 +424,15 @@ Resources:
             - Name: DEBUG
               Value: "false"
             - Name: LLM_PROVIDER
-              Value: bedrock
+              Value: gemini
+            - Name: GEMINI_API_KEY
+              Value: !Ref GeminiAPIKey
             - Name: AWS_REGION
               Value: !Ref "AWS::Region"
             - Name: BEDROCK_CRITICAL_MODEL
-              Value: us.anthropic.claude-opus-4-6-20250624-v1:0
+              Value: apac.anthropic.claude-3-5-sonnet-20241022-v2:0
             - Name: BEDROCK_FAST_MODEL
-              Value: us.anthropic.claude-sonnet-4-6-20250514-v1:0
+              Value: apac.anthropic.claude-3-5-sonnet-20241022-v2:0
             - Name: DB_HOST
               Value: !GetAtt Database.Endpoint.Address
             - Name: DB_PORT

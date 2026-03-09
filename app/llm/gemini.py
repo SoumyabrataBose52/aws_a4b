@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class GeminiProvider(BaseLLMProvider):
     """Google Gemini API provider using the new google-genai SDK."""
 
-    def __init__(self, api_key: str, model_name: str = "gemini-3-flash-preview"):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
         self.max_retries = 3

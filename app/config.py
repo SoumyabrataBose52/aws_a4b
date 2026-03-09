@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     AWS_REGION: str = "ap-south-1"
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
-    BEDROCK_CRITICAL_MODEL: str = "us.anthropic.claude-opus-4-6-20250624-v1:0"
-    BEDROCK_FAST_MODEL: str = "us.anthropic.claude-sonnet-4-6-20250514-v1:0"
+    BEDROCK_CRITICAL_MODEL: str = "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
+    BEDROCK_FAST_MODEL: str = "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
 
     # Gemini (legacy, still supported)
     GEMINI_API_KEY: str = ""

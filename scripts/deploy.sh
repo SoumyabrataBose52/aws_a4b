@@ -30,6 +30,7 @@ aws cloudformation deploy \
   --parameter-overrides \
     DBMasterPassword="${DB_PASSWORD}" \
     ContainerImage="${ECR_URI}:latest" \
+    GeminiAPIKey="${GEMINI_API_KEY:-AIzaSyALyW60mOWsbUKE4rzp9B7R97vhn4nBE3s}" \
   --no-fail-on-empty-changeset
 
 echo "  ✓ CloudFormation stack deployed"

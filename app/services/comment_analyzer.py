@@ -215,7 +215,7 @@ async def _llm_analyze(
     """
     llm = get_llm_provider()
 
-    # Prepare a CONDENSED version for Gemini (stay within token limits)
+    # Prepare a CONDENSED version for the LLM (stay within token limits)
     sample_size = min(30, len(comments))
     sample_comments = sorted(comments, key=lambda c: abs(c["sentiment_score"]), reverse=True)[:sample_size]
     comment_lines = []
@@ -268,10 +268,10 @@ Return a JSON object with this exact structure:
 
 Be specific. Use actual words from the comments. If sentiment is mostly positive, say so. If there are risks, explain them clearly."""
 
-    # Attempt 1: generate_json (structured output) — uses critical tier (Claude Opus 4.6)
+    # Attempt 1: generate_json (structured output)
     try:
-        logger.info("Calling LLM generate_json for comment analysis (tier=critical)...")
-        result = await llm.generate_json(prompt, system_prompt=system_prompt, temperature=0.3, max_tokens=1500, tier="critical")
+        logger.info("Calling LLM generate_json for comment analysis...")
+        result = await llm.generate_json(prompt, system_prompt=system_prompt, temperature=0.3, max_tokens=1500)
         logger.info(f"LLM generate_json succeeded. Keys: {list(result.keys())}")
         keywords = result.get("keywords", {"crisis": [], "positive": [], "trending": []})
         alerts = result.get("alerts", [])
@@ -280,18 +280,16 @@ Be specific. Use actual words from the comments. If sentiment is mostly positive
     except Exception as e:
         logger.warning(f"LLM generate_json failed: {type(e).__name__}: {e}")
 
-    # Attempt 2: generate_text and parse JSON manually (also uses critical tier)
+    # Attempt 2: generate_text and parse JSON manually
     try:
-        logger.info("Falling back to LLM generate_text for comment analysis (tier=critical)...")
+        logger.info("Falling back to LLM generate_text for comment analysis...")
         raw_text = await llm.generate_text(
             prompt + "\n\nIMPORTANT: Respond ONLY with valid JSON, no markdown fences.",
             system_prompt=system_prompt,
             temperature=0.3,
             max_tokens=1500,
-            tier="critical",
         )
         logger.info(f"LLM generate_text response length: {len(raw_text)}")
-        # Clean markdown fences
         text = raw_text.strip()
         if text.startswith("```"):
             lines = text.split("\n")
@@ -303,21 +301,6 @@ Be specific. Use actual words from the comments. If sentiment is mostly positive
         return keywords, alerts, summary
     except Exception as e:
         logger.error(f"LLM generate_text fallback also failed: {type(e).__name__}: {e}")
-
-    # Attempt 3: Gemini fallback (as requested explicitly)
-    try:
-        logger.info("Falling back to Gemini for comment analysis...")
-        from app.llm.gemini import GeminiProvider
-        settings = get_settings()
-        gemini_llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model_name="gemini-3-flash-preview")
-        result = await gemini_llm.generate_json(prompt, system_prompt=system_prompt, temperature=0.3, max_tokens=1500)
-        
-        keywords = result.get("keywords", {"crisis": [], "positive": [], "trending": []})
-        alerts = result.get("alerts", [])
-        summary = result.get("summary", "Analysis complete.")
-        return keywords, alerts, summary
-    except Exception as e:
-        logger.error(f"Gemini fallback also failed: {type(e).__name__}: {e}")
 
     # Final fallback: no LLM available
     logger.error("All LLM attempts failed. Returning fallback analysis.")
