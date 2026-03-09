@@ -65,11 +65,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="bg-gradient-to-br from-accent-brand to-accent-violet text-white flex aspect-square size-8 items-center justify-center rounded-lg shadow-lg shadow-accent-brand/20">
-                  <Zap className="size-4" />
+                <div className="relative overflow-hidden bg-gradient-to-br from-accent-brand/50 to-accent-violet/50 backdrop-blur-xl text-white flex aspect-square size-8 items-center justify-center rounded-lg shadow-lg border border-white/20 ring-1 ring-inset ring-white/10">
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/10 flex to-transparent pointer-events-none" />
+                  <Zap className="size-4 relative z-10" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Nexus Solo</span>
+                  <span className="font-semibold tracking-wide">Nexus Solo</span>
                   <span className="text-xs text-muted-foreground">AI Platform</span>
                 </div>
               </Link>

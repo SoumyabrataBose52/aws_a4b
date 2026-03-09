@@ -120,7 +120,7 @@ export default function DealsPage() {
                                 </DialogTitle>
                             </DialogHeader>
                             <form onSubmit={handleCreate} className="space-y-4 mt-2">
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-muted-foreground">Creator</label>
                                         <Select value={formData.creator_id} onValueChange={(v) => setFormData({ ...formData, creator_id: v })}>

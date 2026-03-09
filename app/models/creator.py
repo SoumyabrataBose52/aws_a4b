@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, Float, Integer, DateTime, JSON, ForeignKey, Enum as SAEnum
+from sqlalchemy import String, Text, Float, Integer, BigInteger, DateTime, JSON, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -19,8 +19,8 @@ class Creator(Base):
     # YouTube-specific fields
     youtube_channel_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     youtube_handle: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    subscribers: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    total_views: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    subscribers: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    total_views: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     video_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
