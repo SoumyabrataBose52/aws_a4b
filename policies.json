@@ -1,0 +1,237 @@
+{
+    "OriginRequestPolicyList": {
+        "MaxItems": 100,
+        "Quantity": 8,
+        "Items": [
+            {
+                "Type": "managed",
+                "OriginRequestPolicy": {
+                    "Id": "acba4595-bd28-49b8-b9fe-13317c0390fa",
+                    "LastModifiedTime": "1970-01-01T00:00:00+00:00",
+                    "OriginRequestPolicyConfig": {
+                        "Comment": "Policy to forward user-agent and referer headers to origin",
+                        "Name": "Managed-UserAgentRefererHeaders",
+                        "HeadersConfig": {
+                            "HeaderBehavior": "whitelist",
+                            "Headers": {
+                                "Quantity": 2,
+                                "Items": [
+                                    "referer",
+                                    "user-agent"
+                                ]
+                            }
+                        },
+                        "CookiesConfig": {
+                            "CookieBehavior": "none"
+                        },
+                        "QueryStringsConfig": {
+                            "QueryStringBehavior": "none"
+                        }
+                    }
+                }
+            },
+            {
+                "Type": "managed",
+                "OriginRequestPolicy": {
+                    "Id": "216adef6-5c7f-47e4-b989-5492eafa07d3",
+                    "LastModifiedTime": "1970-01-01T00:00:00+00:00",
+                    "OriginRequestPolicyConfig": {
+                        "Comment": "Policy to forward all parameters in viewer requests",
+                        "Name": "Managed-AllViewer",
+                        "HeadersConfig": {
+                            "HeaderBehavior": "allViewer"
+                        },
+                        "CookiesConfig": {
+                            "CookieBehavior": "all"
+                        },
+                        "QueryStringsConfig": {
+                            "QueryStringBehavior": "all"
+                        }
+                    }
+                }
+            },
+            {
+                "Type": "managed",
+                "OriginRequestPolicy": {
+                    "Id": "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf",
+                    "LastModifiedTime": "1970-01-01T00:00:00+00:00",
+                    "OriginRequestPolicyConfig": {
+                        "Comment": "Policy for S3 origin with CORS",
+                        "Name": "Managed-CORS-S3Origin",
+                        "HeadersConfig": {
+                            "HeaderBehavior": "whitelist",
+                            "Headers": {
+                                "Quantity": 3,
+                                "Items": [
+                                    "origin",
+                                    "access-control-request-headers",
+                                    "access-control-request-method"
+                                ]
+                            }
+                        },
+                        "CookiesConfig": {
+                            "CookieBehavior": "none"
+                        },
+                        "QueryStringsConfig": {
+                            "QueryStringBehavior": "none"
+                        }
+                    }
+                }
+            },
+            {
+                "Type": "managed",
+                "OriginRequestPolicy": {
+                    "Id": "59781a5b-3903-41f3-afcb-af62929ccde1",
+                    "LastModifiedTime": "1970-01-01T00:00:00+00:00",
+                    "OriginRequestPolicyConfig": {
+                        "Comment": "Policy for custom origin with CORS",
+                        "Name": "Managed-CORS-CustomOrigin",
+                        "HeadersConfig": {
+                            "HeaderBehavior": "whitelist",
+                            "Headers": {
+                                "Quantity": 1,
+                                "Items": [
+                                    "origin"
+                                ]
+                            }
+                        },
+                        "CookiesConfig": {
+                            "CookieBehavior": "none"
+                        },
+                        "QueryStringsConfig": {
+                            "QueryStringBehavior": "none"
+                        }
+                    }
+                }
+            },
+            {
+                "Type": "managed",
+                "OriginRequestPolicy": {
+                    "Id": "775133bc-15f2-49f9-abea-afb2e0bf67d2",
+                    "LastModifiedTime": "1970-01-01T00:00:00+00:00",
+                    "OriginRequestPolicyConfig": {
+                        "Comment": "Policy for Elemental MediaTailor Origin",
+                        "Name": "Managed-Elemental-MediaTailor-PersonalizedManifests",
+                        "HeadersConfig": {
+                            "HeaderBehavior": "whitelist",
+                            "Headers": {
+                                "Quantity": 5,
+                                "Items": [
+                                    "origin",
+                                    "access-control-request-headers",
+                                    "x-forwarded-for",
+                                    "access-control-request-method",
+                                    "user-agent"
+                                ]
+                            }
+                        },
+                        "CookiesConfig": {
+                            "CookieBehavior": "none"
+                        },
+                        "QueryStringsConfig": {
+                            "QueryStringBehavior": "all"
+                        }
+                    }
+                }
+            },
+            {
+                "Type": "managed",
+                "OriginRequestPolicy": {
+                    "Id": "33f36d7e-f396-46d9-90e0-52428a34d9dc",
+                    "LastModifiedTime": "1970-01-01T00:00:00+00:00",
+                    "OriginRequestPolicyConfig": {
+                        "Comment": "Policy to forward all parameters in viewer requests and all CloudFront headers as of June 2022",
+                        "Name": "Managed-AllViewerAndCloudFrontHeaders-2022-06",
+                        "HeadersConfig": {
+                            "HeaderBehavior": "allViewerAndWhitelistCloudFront",
+                            "Headers": {
+                                "Quantity": 21,
+                                "Items": [
+                                    "CloudFront-Viewer-Time-Zone",
+                                    "CloudFront-Viewer-Address",
+                                    "CloudFront-Viewer-Country",
+                                    "CloudFront-Is-IOS-Viewer",
+                                    "CloudFront-Is-Tablet-Viewer",
+                                    "CloudFront-Forwarded-Proto",
+                                    "CloudFront-Viewer-Country-Name",
+                                    "CloudFront-Is-Mobile-Viewer",
+                                    "CloudFront-Is-SmartTV-Viewer",
+                                    "CloudFront-Viewer-Country-Region",
+                                    "CloudFront-Is-Android-Viewer",
+                                    "CloudFront-Viewer-Country-Region-Name",
+                                    "CloudFront-Viewer-City",
+                                    "CloudFront-Viewer-Latitude",
+                                    "CloudFront-Viewer-Longitude",
+                                    "CloudFront-Viewer-Http-Version",
+                                    "CloudFront-Viewer-Postal-Code",
+                                    "CloudFront-Viewer-ASN",
+                                    "CloudFront-Is-Desktop-Viewer",
+                                    "CloudFront-Viewer-Metro-Code",
+                                    "CloudFront-Viewer-TLS"
+                                ]
+                            }
+                        },
+                        "CookiesConfig": {
+                            "CookieBehavior": "all"
+                        },
+                        "QueryStringsConfig": {
+                            "QueryStringBehavior": "all"
+                        }
+                    }
+                }
+            },
+            {
+                "Type": "managed",
+                "OriginRequestPolicy": {
+                    "Id": "b689b0a8-53d0-40ab-baf2-68738e2966ac",
+                    "LastModifiedTime": "1970-01-01T00:00:00+00:00",
+                    "OriginRequestPolicyConfig": {
+                        "Comment": "Policy to forward all parameters in viewer requests except for the Host header",
+                        "Name": "Managed-AllViewerExceptHostHeader",
+                        "HeadersConfig": {
+                            "HeaderBehavior": "allExcept",
+                            "Headers": {
+                                "Quantity": 1,
+                                "Items": [
+                                    "host"
+                                ]
+                            }
+                        },
+                        "CookiesConfig": {
+                            "CookieBehavior": "all"
+                        },
+                        "QueryStringsConfig": {
+                            "QueryStringBehavior": "all"
+                        }
+                    }
+                }
+            },
+            {
+                "Type": "managed",
+                "OriginRequestPolicy": {
+                    "Id": "bf0718e1-ba1e-49d1-88b1-f726733018ae",
+                    "LastModifiedTime": "1970-01-01T00:00:00+00:00",
+                    "OriginRequestPolicyConfig": {
+                        "Comment": "Policy for an origin to forward the Host header only",
+                        "Name": "Managed-HostHeaderOnly",
+                        "HeadersConfig": {
+                            "HeaderBehavior": "whitelist",
+                            "Headers": {
+                                "Quantity": 1,
+                                "Items": [
+                                    "host"
+                                ]
+                            }
+                        },
+                        "CookiesConfig": {
+                            "CookieBehavior": "none"
+                        },
+                        "QueryStringsConfig": {
+                            "QueryStringBehavior": "none"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}

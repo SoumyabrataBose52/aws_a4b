@@ -88,7 +88,7 @@ BUCKET_NAME=$(aws cloudformation describe-stacks \
 
 cd frontend
 NEXT_PUBLIC_API_URL="${CF_URL}" NEXT_PUBLIC_API_KEY="nexus-prod-key-secure-2026" npm run build
-aws s3 sync out/ "s3://${BUCKET_NAME}/" --delete --region "${REGION}"
+aws s3 sync out/ "s3://${BUCKET_NAME}/" --delete --exclude "media/*" --region "${REGION}"
 cd ..
 
 echo "  ✓ Frontend deployed to S3"

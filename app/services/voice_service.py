@@ -174,9 +174,36 @@ async def generate_voiceover(
             final_path = raw_path
             duration_ms = 0
 
+        # Upload to S3 if configured
+        from app.config import get_settings
+        settings = get_settings()
+        
+        file_name = os.path.basename(final_path)
+        
+        if settings.FRONTEND_BUCKET_NAME:
+            import boto3
+            from botocore.exceptions import ClientError
+            try:
+                s3_client = boto3.client('s3', region_name=settings.AWS_REGION)
+                s3_key = f"media/voice/{file_name}"
+                s3_client.upload_file(
+                    final_path, 
+                    settings.FRONTEND_BUCKET_NAME, 
+                    s3_key,
+                    ExtraArgs={'ContentType': 'audio/mpeg'}
+                )
+                logger.info(f"Uploaded {file_name} to S3 bucket {settings.FRONTEND_BUCKET_NAME}")
+                
+                # Clean up local generated file
+                os.remove(final_path)
+                final_path = f"s3://{settings.FRONTEND_BUCKET_NAME}/{s3_key}"
+            except ClientError as e:
+                logger.error(f"Failed to upload {file_name} to S3: {e}")
+                # Fallback to local file
+        
         return {
             "file_path": final_path,
-            "file_name": os.path.basename(final_path),
+            "file_name": file_name,
             "profile": profile,
             "duration_seconds": round(duration_ms / 1000, 1) if duration_ms else None,
             "config": {

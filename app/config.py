@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "NexusSolo"
     APP_ENV: str = "development"
     DEBUG: bool = True
+    FRONTEND_BUCKET_NAME: str = ""
 
     # Database (individual fields for RDS, or full URL for local)
     DATABASE_URL: str = ""

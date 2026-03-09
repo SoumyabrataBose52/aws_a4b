@@ -366,6 +366,12 @@ Resources:
             Action:
               - secretsmanager:GetSecretValue
             Resource: !Ref AppSecret
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:DeleteObject
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${FrontendBucket}/*"
 
   # ──────────────────────────────────────────────────────────────
   # ECS Cluster & Service
@@ -440,6 +446,8 @@ Resources:
               Value: !Ref InstagramAppId
             - Name: INSTAGRAM_APP_SECRET
               Value: !Ref InstagramAppSecret
+            - Name: FRONTEND_BUCKET_NAME
+              Value: !Ref FrontendBucket
           LogConfiguration:
             LogDriver: awslogs
             Options:
